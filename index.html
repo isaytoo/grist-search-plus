@@ -86,7 +86,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .s-input::placeholder{color:#b8b4aa}
 
 .s-clear{
-  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  position:absolute;right:40px;top:50%;transform:translateY(-50%);
   width:18px;height:18px;border-radius:50%;border:none;
   background:#d5d2ca;color:var(--muted);cursor:pointer;
   display:none;align-items:center;justify-content:center;
@@ -94,6 +94,18 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 }
 .s-clear:hover{background:#c0bdb5;color:var(--text)}
 .s-clear.show{display:flex}
+
+.s-search-btn{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  width:26px;height:26px;border-radius:var(--rs);border:none;
+  background:var(--accent);color:white;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s,transform .1s;
+  opacity:0;pointer-events:none
+}
+.s-search-btn.show{opacity:1;pointer-events:auto}
+.s-search-btn:hover{background:var(--accent-hi);transform:translateY(-50%) scale(1.05)}
+.s-search-btn:active{transform:translateY(-50%) scale(0.95)}
 
 .ico-btn{
   flex-shrink:0;width:32px;height:32px;border-radius:var(--rs);
@@ -561,6 +573,9 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
       <button class="s-clear" id="sClear">
         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
       </button>
+      <button class="s-search-btn" id="sSearchBtn" title="Rechercher (Entrée)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
     </div>
 
     <!-- Settings -->
@@ -956,8 +971,11 @@ function rebuildColumnsFromRecords(records) {
 let resultsVisible = true;
 
 function renderResults(records) {
-  // Always show results panel when there are results
-  if (records.length > 0) {
+  // Show results panel when there's an active search query or filters
+  const hasQuery = APP.query && APP.query.trim();
+  const hasFilters = APP.filters.length > 0 && APP.filters.some(f => f.value || f.op === 'empty' || f.op === 'not_empty');
+  
+  if (hasQuery || hasFilters || records.length > 0) {
     resultsPanel.classList.add('show');
   } else {
     resultsPanel.classList.remove('show');
@@ -1604,6 +1622,11 @@ function initGrist() {
       columns: [],       // accept any column mapping
     });
 
+    APP.gristReady = true;
+
+    // Load available tables immediately when Grist is ready
+    loadAvailableTables();
+
     grist.onRecords((records, mappings) => {
       // Store linked records
       APP.linkedRecords = records || [];
@@ -1626,10 +1649,6 @@ function initGrist() {
         renderCols();
         renderColTagsSimple();
         loadSession();
-        
-        // Load available tables
-        loadAvailableTables();
-        
         runFilter();
       } else if (APP.ready && !APP.selectedTable) {
         runFilter();
@@ -1640,8 +1659,6 @@ function initGrist() {
     grist.on('message', msg => {
       if (msg && msg.tableId) runFilter();
     });
-
-    APP.gristReady = true;
   } catch(e) {
     console.warn('Grist API not available — using demo data', e);
     APP.gristReady = false;
@@ -1684,9 +1701,11 @@ function loadDemo() {
 ═══════════════════════════════════════════════════════════ */
 
 // Search
+const sSearchBtnRef = document.getElementById('sSearchBtn');
 sInput.addEventListener('input', () => {
   APP.query = sInput.value;
   sClear.classList.toggle('show', !!APP.query);
+  sSearchBtnRef.classList.toggle('show', !!APP.query);
   saveSession(APP.query);
   runFilter();
 });
@@ -1694,14 +1713,29 @@ sInput.addEventListener('input', () => {
 sClear.addEventListener('click', () => {
   sInput.value = ''; APP.query = '';
   sClear.classList.remove('show');
+  sSearchBtnRef.classList.remove('show');
   tokList.innerHTML = '';
   saveSession('');
   runFilter();
   sInput.focus();
 });
 
-// Keyboard shortcut: Escape clears
-sInput.addEventListener('keydown', e => { if (e.key === 'Escape') sClear.click(); });
+// Keyboard shortcut: Escape clears, Enter triggers search
+sInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') sClear.click();
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    runFilter();
+    renderResults(APP.lastMatchedRecords);
+  }
+});
+
+// Search button
+const sSearchBtn = document.getElementById('sSearchBtn');
+sSearchBtn.addEventListener('click', () => {
+  runFilter();
+  renderResults(APP.lastMatchedRecords);
+});
 
 // Settings panel
 btnCfg.addEventListener('click', () => {
