@@ -955,8 +955,11 @@ function rebuildColumnsFromRecords(records) {
 let resultsVisible = true;
 
 function renderResults(records) {
+  console.log('renderResults called, selectedTable:', APP.selectedTable, 'records:', records.length);
+  
   // Show results panel only when a table is selected via selector
   if (APP.selectedTable) {
+    console.log('Showing results panel');
     resultsPanel.classList.add('show');
   } else {
     resultsPanel.classList.remove('show');
