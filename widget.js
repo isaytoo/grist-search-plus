@@ -881,10 +881,28 @@ async function saveResultsToNewTable() {
     console.log('Creating table with columns:', columns);
     console.log('Date columns detected:', [...dateColNames]);
     
-    // Create the new table using AddEmptyTable then ModifyColumn for types
+    // Create the new table
     await grist.docApi.applyUserActions([
       ['AddTable', tableName, columns]
     ]);
+    
+    // Force Date type on date columns using ModifyColumn
+    for (const dateCol of dateColNames) {
+      await grist.docApi.applyUserActions([
+        ['ModifyColumn', tableName, dateCol, { type: 'Date' }]
+      ]);
+    }
+    
+    // Also force Numeric type on numeric columns (in case they were created as Text)
+    const numericCols = colNames.filter(name => {
+      const val = firstRec[name];
+      return typeof val === 'number' && !dateColNames.has(name);
+    });
+    for (const numCol of numericCols) {
+      await grist.docApi.applyUserActions([
+        ['ModifyColumn', tableName, numCol, { type: 'Numeric' }]
+      ]);
+    }
     
     // Prepare records for insertion
     const records = APP.lastMatchedRecords.map(rec => {
