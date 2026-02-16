@@ -929,6 +929,7 @@ async function selectTable(tableName) {
       }
       
       APP.records = records;
+      APP.ready = true;
       console.log('selectTable: loaded', records.length, 'records from', tableName, records);
       rebuildColumnsFromRecords(records);
       
