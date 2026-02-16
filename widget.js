@@ -857,16 +857,17 @@ async function saveResultsToNewTable() {
     const colNames = Object.keys(firstRec).filter(k => k !== 'id' && k !== 'manualSort');
     
     // Build column definitions
+    // Detect date columns by name pattern
+    const dateColPattern = /date|created|updated|modified|embauche|naissance|debut|fin|start|end/i;
+    const dateColNames = new Set(colNames.filter(name => dateColPattern.test(name)));
+    
     const columns = colNames.map(name => {
       const val = firstRec[name];
       let type = 'Text';
       
-      // Check if column name suggests it's a date
-      const isDateCol = /date|created|updated|modified|embauche|naissance|debut|fin|start|end/i.test(name);
-      
       if (typeof val === 'number') {
-        // Check if it's a date timestamp (by name or value range)
-        if (isDateCol || (val > 946684800 && val < 2524608000)) {
+        // Check if it's a date column (by name or value range)
+        if (dateColNames.has(name) || (val > 946684800 && val < 2524608000)) {
           type = 'Date';
         } else {
           type = 'Numeric';
@@ -874,10 +875,13 @@ async function saveResultsToNewTable() {
       } else if (typeof val === 'boolean') {
         type = 'Bool';
       }
-      return { id: name, fields: { type } };
+      return { id: name, fields: { type, label: name } };
     });
     
-    // Create the new table
+    console.log('Creating table with columns:', columns);
+    console.log('Date columns detected:', [...dateColNames]);
+    
+    // Create the new table using AddEmptyTable then ModifyColumn for types
     await grist.docApi.applyUserActions([
       ['AddTable', tableName, columns]
     ]);
