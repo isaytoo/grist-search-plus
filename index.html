@@ -509,6 +509,45 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
   font-size:11px;color:var(--muted);margin-top:8px;
   padding:8px;background:var(--surf-alt);border-radius:var(--rs)
 }
+
+/* Results panel */
+.results-panel{
+  display:none;flex-direction:column;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);max-height:300px;
+  overflow:hidden
+}
+.results-panel.show{display:flex}
+.results-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-bottom:1px solid var(--border);
+  background:var(--surf-alt);flex-shrink:0
+}
+.results-title{
+  font-size:11px;font-weight:600;color:var(--label)
+}
+.results-table-wrap{
+  flex:1;overflow:auto;padding:0
+}
+.results-table{
+  width:100%;border-collapse:collapse;font-size:11px
+}
+.results-table th{
+  position:sticky;top:0;background:var(--surf-alt);
+  padding:6px 10px;text-align:left;font-weight:600;
+  color:var(--muted);border-bottom:1px solid var(--border);
+  white-space:nowrap
+}
+.results-table td{
+  padding:6px 10px;border-bottom:1px solid var(--border);
+  color:var(--text);max-width:200px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap
+}
+.results-table tr:hover td{background:var(--accent-dim)}
+.results-table tr.highlight td{background:#fff8e6}
+.results-empty{
+  padding:20px;text-align:center;color:var(--muted);font-size:12px
+}
 </style>
 </head>
 <body>
@@ -647,6 +686,20 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
         </label>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ── Results panel (when table selected via selector) ── -->
+  <div class="results-panel" id="resultsPanel">
+    <div class="results-hdr">
+      <span class="results-title" id="resultsTitle">📋 Résultats (0)</span>
+      <button class="btn-xs" id="btnToggleResults">Masquer</button>
+    </div>
+    <div class="results-table-wrap" id="resultsTableWrap">
+      <table class="results-table" id="resultsTable">
+        <thead id="resultsHead"></thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -792,6 +845,14 @@ const saveCount = document.getElementById('saveCount');
 const btnCancelSave = document.getElementById('btnCancelSave');
 const btnConfirmSave = document.getElementById('btnConfirmSave');
 
+// Results panel DOM
+const resultsPanel = document.getElementById('resultsPanel');
+const resultsTitle = document.getElementById('resultsTitle');
+const resultsHead = document.getElementById('resultsHead');
+const resultsBody = document.getElementById('resultsBody');
+const resultsTableWrap = document.getElementById('resultsTableWrap');
+const btnToggleResults = document.getElementById('btnToggleResults');
+
 // Simple mode DOM
 const btnModeSimple = document.getElementById('btnModeSimple');
 const btnModeAdvanced = document.getElementById('btnModeAdvanced');
@@ -885,6 +946,54 @@ function rebuildColumnsFromRecords(records) {
   renderCols();
   renderColTagsSimple();
   renderFilters(); // Update filter column dropdowns
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESULTS DISPLAY FUNCTIONS
+═══════════════════════════════════════════════════════════ */
+
+let resultsVisible = true;
+
+function renderResults(records) {
+  // Show results panel only when a table is selected via selector
+  if (APP.selectedTable) {
+    resultsPanel.classList.add('show');
+  } else {
+    resultsPanel.classList.remove('show');
+    return;
+  }
+  
+  resultsTitle.textContent = `📋 Résultats (${records.length})`;
+  
+  if (records.length === 0) {
+    resultsHead.innerHTML = '';
+    resultsBody.innerHTML = '<tr><td class="results-empty" colspan="100">Aucun résultat</td></tr>';
+    return;
+  }
+  
+  // Build header with active columns
+  const cols = [...APP.activeCols].slice(0, 6); // Limit to 6 columns for display
+  resultsHead.innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  
+  // Build body (limit to 50 rows for performance)
+  const displayRecords = records.slice(0, 50);
+  resultsBody.innerHTML = displayRecords.map(rec => {
+    return '<tr>' + cols.map(c => {
+      const val = rec[c];
+      const display = val === null || val === undefined ? '' : String(val);
+      return `<td title="${display}">${display}</td>`;
+    }).join('') + '</tr>';
+  }).join('');
+  
+  if (records.length > 50) {
+    resultsBody.innerHTML += `<tr><td class="results-empty" colspan="${cols.length}">... et ${records.length - 50} autres lignes</td></tr>`;
+  }
+}
+
+function toggleResultsPanel() {
+  resultsVisible = !resultsVisible;
+  resultsTableWrap.style.display = resultsVisible ? 'block' : 'none';
+  btnToggleResults.textContent = resultsVisible ? 'Masquer' : 'Afficher';
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1334,6 +1443,9 @@ function runFilter() {
   // Store matched records for potential saving
   APP.lastMatchedRecords = matched;
   
+  // Render results in the panel (for table selector mode)
+  renderResults(matched);
+  
   send(matched.map(r => r.id));
   setCount(matched.length, matched.length === 0 ? 'zero' : '');
 }
@@ -1615,6 +1727,9 @@ btnConfirmSave.addEventListener('click', saveResultsToTable);
 saveModal.addEventListener('click', (e) => {
   if (e.target === saveModal) closeSaveModal();
 });
+
+// Results panel toggle
+btnToggleResults.addEventListener('click', toggleResultsPanel);
 
 // Config: placeholder
 cfgPH.addEventListener('input', () => { sInput.placeholder = cfgPH.value || 'Rechercher…'; });
