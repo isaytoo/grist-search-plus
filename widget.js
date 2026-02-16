@@ -488,6 +488,12 @@ function updateCount(n) {
   countBadge.className = 'count-badge' + (n === 0 ? ' zero' : '');
   modeBadge.textContent = APP.logicMode.toUpperCase();
   modeBadge.className = 'mode-badge' + (APP.logicMode === 'and' ? ' and' : '');
+  
+  // Show/hide save button
+  const saveBtn = $('btnSaveResults');
+  if (saveBtn) {
+    saveBtn.style.display = n > 0 ? 'flex' : 'none';
+  }
 }
 
 function formatDateByLocale(date) {
@@ -829,6 +835,84 @@ $('dateFormat').addEventListener('change', (e) => {
   APP.dateFormat = e.target.value;
   runFilter();
 });
+
+// Save results to new table
+$('btnSaveResults').addEventListener('click', saveResultsToNewTable);
+
+async function saveResultsToNewTable() {
+  if (!APP.gristReady || APP.lastMatchedRecords.length === 0) return;
+  
+  const btn = $('btnSaveResults');
+  const originalText = btn.querySelector('span').textContent;
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Sauvegarde...';
+  
+  try {
+    // Generate table name with timestamp
+    const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+    const tableName = `Search_${timestamp}`;
+    
+    // Get columns from first record (excluding 'id' and 'manualSort')
+    const firstRec = APP.lastMatchedRecords[0];
+    const colNames = Object.keys(firstRec).filter(k => k !== 'id' && k !== 'manualSort');
+    
+    // Build column definitions
+    const columns = colNames.map(name => {
+      const val = firstRec[name];
+      let type = 'Text';
+      if (typeof val === 'number') {
+        // Check if it's a date timestamp
+        if (val > 946684800 && val < 2524608000) {
+          type = 'Date';
+        } else {
+          type = 'Numeric';
+        }
+      } else if (typeof val === 'boolean') {
+        type = 'Bool';
+      }
+      return { id: name, fields: { type } };
+    });
+    
+    // Create the new table
+    await grist.docApi.applyUserActions([
+      ['AddTable', tableName, columns]
+    ]);
+    
+    // Prepare records for insertion
+    const records = APP.lastMatchedRecords.map(rec => {
+      const fields = {};
+      colNames.forEach(col => {
+        fields[col] = rec[col];
+      });
+      return { fields };
+    });
+    
+    // Insert records in batches of 100
+    const batchSize = 100;
+    for (let i = 0; i < records.length; i += batchSize) {
+      const batch = records.slice(i, i + batchSize);
+      await grist.docApi.applyUserActions([
+        ['BulkAddRecord', tableName, batch.map(() => null), {
+          ...Object.fromEntries(colNames.map(col => [col, batch.map(r => r.fields[col])]))
+        }]
+      ]);
+    }
+    
+    btn.querySelector('span').textContent = `✓ ${tableName}`;
+    setTimeout(() => {
+      btn.querySelector('span').textContent = originalText;
+      btn.disabled = false;
+    }, 3000);
+    
+  } catch (e) {
+    console.error('Error saving results:', e);
+    btn.querySelector('span').textContent = 'Erreur!';
+    setTimeout(() => {
+      btn.querySelector('span').textContent = originalText;
+      btn.disabled = false;
+    }, 2000);
+  }
+}
 
 // ══════════════════════════════════════════════════════════════
 // INIT
