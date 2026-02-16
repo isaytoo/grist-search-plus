@@ -914,6 +914,7 @@ async function selectTable(tableName) {
       }
       
       APP.records = records;
+      console.log('selectTable: loaded', records.length, 'records from', tableName, records);
       rebuildColumnsFromRecords(records);
       
       stateMsg.style.display = 'none';
