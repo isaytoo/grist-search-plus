@@ -1,0 +1,14 @@
+{
+  "name": "Recherche avancée",
+  "description": "Widget de recherche multi-colonnes avec syntaxe avancée (AND, OR, négation, regex, scope de colonnes). Filtre les vues liées en temps réel, partage l'état entre widgets via sessionStorage.",
+  "url": "index.html",
+  "author": "Custom",
+  "version": "1.0.0",
+  "minimumGristCoreVersion": "1.1.6",
+  "accessLevel": "read table",
+  "icon": "search",
+  "keywords": ["search", "filter", "recherche", "filtrage"],
+  "components": {
+    "view": "index.html"
+  }
+}
