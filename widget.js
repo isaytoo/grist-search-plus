@@ -22,6 +22,7 @@ const APP = {
   lastMatchedRecords: [],
   sessEnabled: false,
   availableTables: [],
+  dateFormat: 'fr',
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -416,6 +417,18 @@ function updateCount(n) {
   modeBadge.className = 'mode-badge' + (APP.logicMode === 'and' ? ' and' : '');
 }
 
+function formatDateByLocale(date) {
+  switch (APP.dateFormat) {
+    case 'en':
+      return date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    case 'iso':
+      return date.toISOString().split('T')[0]; // YYYY-MM-DD
+    case 'fr':
+    default:
+      return date.toLocaleDateString('fr-FR', { year: 'numeric', month: '2-digit', day: '2-digit' }); // JJ/MM/AAAA
+  }
+}
+
 function formatValue(val, colName) {
   if (val == null) return '';
   
@@ -427,7 +440,7 @@ function formatValue(val, colName) {
     const isDateCol = /date|created|updated|modified|embauche|naissance|debut|fin|start|end/i.test(lowerCol);
     if (isDateCol) {
       const d = new Date(val * 1000);
-      return d.toLocaleDateString('fr-FR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      return formatDateByLocale(d);
     }
   }
   
@@ -435,7 +448,7 @@ function formatValue(val, colName) {
   if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
     const d = new Date(val);
     if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString('fr-FR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      return formatDateByLocale(d);
     }
   }
   
@@ -737,6 +750,12 @@ $('btnHelp').addEventListener('click', () => {
   else openHelp();
 });
 $('helpClose').addEventListener('click', closeHelp);
+
+// Date format
+$('dateFormat').addEventListener('change', (e) => {
+  APP.dateFormat = e.target.value;
+  runFilter();
+});
 
 // ══════════════════════════════════════════════════════════════
 // INIT
