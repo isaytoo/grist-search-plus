@@ -362,6 +362,29 @@ function testRecord(rec, parsed) {
   
   const testTok = tok => {
     const cols = tok.cols.length ? tok.cols : active;
+    
+    // For date/numeric filters, use raw values and only test relevant columns
+    if (tok.dateMatch) {
+      // For date filters, only test columns that look like dates (timestamps or date strings)
+      const dateVals = cols.map(c => rec[c]).filter(v => {
+        if (typeof v === 'number' && v > 946684800 && v < 2524608000) return true;
+        if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return true;
+        return false;
+      });
+      if (dateVals.length === 0) return tok.negate; // No date columns found
+      const hit = dateVals.some(v => matchDate(v, tok.dateMatch));
+      return tok.negate ? !hit : hit;
+    }
+    
+    if (tok.numRange) {
+      // For numeric filters, only test numeric values
+      const numVals = cols.map(c => rec[c]).filter(v => typeof v === 'number');
+      if (numVals.length === 0) return tok.negate; // No numeric columns found
+      const hit = numVals.some(v => matchNumericRange(v, tok.numRange));
+      return tok.negate ? !hit : hit;
+    }
+    
+    // For text-based filters, use string conversion
     const vals = cols.map(c => String(rec[c] ?? '')).filter(Boolean);
     const hit = vals.some(v => matchVal(v, tok));
     return tok.negate ? !hit : hit;
@@ -373,6 +396,25 @@ function testRecord(rec, parsed) {
     for (const col of active) {
       const testTokCol = tok => {
         const cols = tok.cols.length ? tok.cols : [col];
+        
+        if (tok.dateMatch) {
+          const dateVals = cols.map(c => rec[c]).filter(v => {
+            if (typeof v === 'number' && v > 946684800 && v < 2524608000) return true;
+            if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return true;
+            return false;
+          });
+          if (dateVals.length === 0) return tok.negate;
+          const hit = dateVals.some(v => matchDate(v, tok.dateMatch));
+          return tok.negate ? !hit : hit;
+        }
+        
+        if (tok.numRange) {
+          const numVals = cols.map(c => rec[c]).filter(v => typeof v === 'number');
+          if (numVals.length === 0) return tok.negate;
+          const hit = numVals.some(v => matchNumericRange(v, tok.numRange));
+          return tok.negate ? !hit : hit;
+        }
+        
         const vals = cols.map(c => String(rec[c] ?? '')).filter(Boolean);
         const hit = vals.some(v => matchVal(v, tok));
         return tok.negate ? !hit : hit;
