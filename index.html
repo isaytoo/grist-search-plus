@@ -944,6 +944,7 @@ async function selectTable(tableName) {
 }
 
 function rebuildColumnsFromRecords(records) {
+  console.log('rebuildColumnsFromRecords called with', records.length, 'records');
   if (!records.length) {
     APP.columns = [];
     APP.activeCols.clear();
@@ -959,6 +960,9 @@ function rebuildColumnsFromRecords(records) {
   
   APP.activeCols.clear();
   APP.columns.forEach(c => APP.activeCols.add(c.id));
+  
+  console.log('rebuildColumnsFromRecords: columns:', APP.columns.map(c => c.id));
+  console.log('rebuildColumnsFromRecords: activeCols:', [...APP.activeCols]);
   
   renderCols();
   renderColTagsSimple();
@@ -1414,8 +1418,15 @@ function runFilter() {
     // Start with all records or filter by text search
     if (raw) {
       const simpleQuery = buildSimpleQuery(raw);
+      console.log('runFilter: simpleQuery:', simpleQuery);
       const parsed = parseQuery(simpleQuery);
-      matched = APP.records.filter(r => testRecord(r, parsed));
+      console.log('runFilter: parsed:', parsed);
+      console.log('runFilter: testing records:', APP.records);
+      matched = APP.records.filter(r => {
+        const result = testRecord(r, parsed);
+        console.log('runFilter: testRecord', r, 'result:', result);
+        return result;
+      });
       updateTokens(parsed.tokens, parsed.mode);
     } else {
       matched = [...APP.records];
