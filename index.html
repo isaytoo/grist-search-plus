@@ -446,6 +446,63 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
 .simple-mode .statusbar{display:none}
 .simple-mode .help-bar{display:none}
 .simple-mode .help-body{display:none}
+
+/* Save results button */
+.btn-save-results{
+  width:28px;height:28px;border-radius:var(--rs);
+  border:1.5px solid var(--border);background:var(--surface);
+  color:var(--muted);cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;flex-shrink:0
+}
+.btn-save-results:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.btn-save-results:disabled{opacity:.4;cursor:not-allowed}
+
+/* Save modal */
+.save-modal{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,.5);display:flex;
+  align-items:center;justify-content:center;z-index:1000
+}
+.save-modal.hidden{display:none}
+.save-modal-content{
+  background:var(--surface);border-radius:var(--r);
+  padding:20px;width:90%;max-width:400px;
+  box-shadow:0 10px 40px rgba(0,0,0,.2)
+}
+.save-modal-title{
+  font-size:14px;font-weight:600;margin-bottom:16px;
+  display:flex;align-items:center;gap:8px
+}
+.save-modal-row{margin-bottom:12px}
+.save-modal-label{
+  font-size:11px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;margin-bottom:4px;display:block
+}
+.save-modal-input{
+  width:100%;font-family:var(--mono);font-size:12px;
+  padding:8px 10px;border:1.5px solid var(--border);
+  border-radius:var(--rs);background:var(--surface);
+  color:var(--text);outline:none
+}
+.save-modal-input:focus{border-color:var(--accent)}
+.save-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.save-modal-btn{
+  font-family:var(--sans);font-size:12px;font-weight:500;
+  padding:8px 16px;border-radius:var(--rs);cursor:pointer;
+  border:1.5px solid var(--border);background:var(--surface);
+  color:var(--label);transition:all .1s
+}
+.save-modal-btn:hover{background:var(--bg)}
+.save-modal-btn.primary{
+  background:var(--accent);border-color:var(--accent);color:white
+}
+.save-modal-btn.primary:hover{background:#2563eb}
+.save-modal-btn:disabled{opacity:.5;cursor:not-allowed}
+.save-modal-info{
+  font-size:11px;color:var(--muted);margin-top:8px;
+  padding:8px;background:var(--surf-alt);border-radius:var(--rs)
+}
 </style>
 </head>
 <body>
@@ -523,6 +580,7 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
     <div class="tok-list" id="tokList"></div>
     <span class="mode-badge m-or" id="modeBadge">OR</span>
     <span class="count-pill zero" id="cPill">0</span>
+    <button class="btn-save-results" id="btnSaveResults" title="Enregistrer les résultats dans une nouvelle table">💾</button>
   </div>
 
   <!-- ── Settings panel ── -->
@@ -624,6 +682,31 @@ html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t
     <div class="help-rule"><code>/regex/</code><span>Expression régulière (<code>\s</code> = espace)</span></div>
   </div>
 
+  <!-- ── Save Results Modal ── -->
+  <div class="save-modal hidden" id="saveModal">
+    <div class="save-modal-content">
+      <div class="save-modal-title">💾 Enregistrer les résultats</div>
+      <div class="save-modal-row">
+        <label class="save-modal-label">Nom de la nouvelle table</label>
+        <input type="text" class="save-modal-input" id="saveTableName" placeholder="Resultats_recherche">
+      </div>
+      <div class="save-modal-row">
+        <label class="save-modal-label">Colonnes à inclure</label>
+        <select class="save-modal-input" id="saveColsMode">
+          <option value="active">Colonnes actives uniquement</option>
+          <option value="all">Toutes les colonnes</option>
+        </select>
+      </div>
+      <div class="save-modal-info" id="saveInfo">
+        <span id="saveCount">0</span> lignes seront enregistrées
+      </div>
+      <div class="save-modal-actions">
+        <button class="save-modal-btn" id="btnCancelSave">Annuler</button>
+        <button class="save-modal-btn primary" id="btnConfirmSave">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- .w -->
 
 <script>
@@ -658,6 +741,8 @@ const APP = {
   availableTables: [],
   selectedTable: '',           // '' = use linked view, otherwise table name
   linkedRecords: [],           // Records from linked view (original)
+  // Filtered results for saving
+  lastMatchedRecords: [],
 };
 
 // ── DOM ────────────────────────────────────────────────────
@@ -684,6 +769,15 @@ const sessIndicator = document.getElementById('sessIndicator');
 const cfgHidden  = document.getElementById('cfgHidden');
 const cfgTable   = document.getElementById('cfgTable');
 const btnRefreshTables = document.getElementById('btnRefreshTables');
+
+// Save results DOM
+const btnSaveResults = document.getElementById('btnSaveResults');
+const saveModal = document.getElementById('saveModal');
+const saveTableName = document.getElementById('saveTableName');
+const saveColsMode = document.getElementById('saveColsMode');
+const saveCount = document.getElementById('saveCount');
+const btnCancelSave = document.getElementById('btnCancelSave');
+const btnConfirmSave = document.getElementById('btnConfirmSave');
 
 // Simple mode DOM
 const btnModeSimple = document.getElementById('btnModeSimple');
@@ -778,6 +872,109 @@ function rebuildColumnsFromRecords(records) {
   renderCols();
   renderColTagsSimple();
   renderFilters(); // Update filter column dropdowns
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAVE RESULTS FUNCTIONS
+═══════════════════════════════════════════════════════════ */
+
+function openSaveModal() {
+  if (APP.lastMatchedRecords.length === 0) {
+    alert('Aucun résultat à enregistrer. Effectuez d\'abord une recherche.');
+    return;
+  }
+  
+  // Generate default table name
+  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  saveTableName.value = 'Resultats_' + timestamp;
+  saveCount.textContent = APP.lastMatchedRecords.length;
+  
+  saveModal.classList.remove('hidden');
+}
+
+function closeSaveModal() {
+  saveModal.classList.add('hidden');
+}
+
+async function saveResultsToTable() {
+  if (!APP.gristReady) {
+    alert('Grist non disponible');
+    return;
+  }
+  
+  const tableName = saveTableName.value.trim().replace(/[^a-zA-Z0-9_]/g, '_');
+  if (!tableName) {
+    alert('Veuillez entrer un nom de table valide');
+    return;
+  }
+  
+  const useAllCols = saveColsMode.value === 'all';
+  const colsToUse = useAllCols 
+    ? APP.columns.map(c => c.id)
+    : [...APP.activeCols];
+  
+  if (colsToUse.length === 0) {
+    alert('Aucune colonne sélectionnée');
+    return;
+  }
+  
+  btnConfirmSave.disabled = true;
+  btnConfirmSave.textContent = 'Enregistrement...';
+  
+  try {
+    // Check if table exists
+    const existingTables = await grist.docApi.listTables();
+    
+    if (existingTables.includes(tableName)) {
+      if (!confirm(`La table "${tableName}" existe déjà. Voulez-vous y ajouter les données ?`)) {
+        btnConfirmSave.disabled = false;
+        btnConfirmSave.textContent = 'Enregistrer';
+        return;
+      }
+    } else {
+      // Create new table with columns
+      const colDefs = colsToUse.map(colId => {
+        const col = APP.columns.find(c => c.id === colId);
+        return { id: colId, type: col?.type || 'Text' };
+      });
+      
+      await grist.docApi.applyUserActions([
+        ['AddTable', tableName, colDefs]
+      ]);
+    }
+    
+    // Prepare records for insertion
+    const recordsToAdd = APP.lastMatchedRecords.map(rec => {
+      const newRec = {};
+      colsToUse.forEach(colId => {
+        if (rec[colId] !== undefined) {
+          newRec[colId] = rec[colId];
+        }
+      });
+      return newRec;
+    });
+    
+    // Add records in batches of 100
+    const batchSize = 100;
+    for (let i = 0; i < recordsToAdd.length; i += batchSize) {
+      const batch = recordsToAdd.slice(i, i + batchSize);
+      const actions = batch.map(rec => ['AddRecord', tableName, null, rec]);
+      await grist.docApi.applyUserActions(actions);
+    }
+    
+    closeSaveModal();
+    alert(`✅ ${recordsToAdd.length} lignes enregistrées dans "${tableName}"`);
+    
+    // Refresh available tables
+    loadAvailableTables();
+    
+  } catch (e) {
+    console.error('Erreur sauvegarde:', e);
+    alert('Erreur: ' + e.message);
+  } finally {
+    btnConfirmSave.disabled = false;
+    btnConfirmSave.textContent = 'Enregistrer';
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1121,6 +1318,9 @@ function runFilter() {
     matched = APP.records.filter(r => testRecord(r, parsed));
   }
   
+  // Store matched records for potential saving
+  APP.lastMatchedRecords = matched;
+  
   send(matched.map(r => r.id));
   setCount(matched.length, matched.length === 0 ? 'zero' : '');
 }
@@ -1394,6 +1594,14 @@ cfgMode.addEventListener('change', () => { APP.defaultMode = cfgMode.value; runF
 // Config: table selection
 cfgTable.addEventListener('change', () => selectTable(cfgTable.value));
 btnRefreshTables.addEventListener('click', () => loadAvailableTables());
+
+// Save results
+btnSaveResults.addEventListener('click', openSaveModal);
+btnCancelSave.addEventListener('click', closeSaveModal);
+btnConfirmSave.addEventListener('click', saveResultsToTable);
+saveModal.addEventListener('click', (e) => {
+  if (e.target === saveModal) closeSaveModal();
+});
 
 // Config: placeholder
 cfgPH.addEventListener('input', () => { sInput.placeholder = cfgPH.value || 'Rechercher…'; });
