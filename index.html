@@ -1443,6 +1443,8 @@ function runFilter() {
   // Store matched records for potential saving
   APP.lastMatchedRecords = matched;
   
+  console.log('runFilter: matched', matched.length, 'records, query:', APP.query);
+  
   // Render results in the panel (for table selector mode)
   renderResults(matched);
   
