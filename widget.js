@@ -87,7 +87,13 @@ function parseQuery(raw) {
     }
     
     // Check for date keywords (@today, @week, @month, @year, @yesterday)
-    if (word.startsWith('@') || word.match(/^[><]=?\d{4}-\d{2}-\d{2}$/) || word.match(/^\d{4}-\d{2}-\d{2}\.\.\d{4}-\d{2}-\d{2}$/)) {
+    // Also supports EN (YYYY-MM-DD) and FR (DD-MM-YYYY, DD/MM/YYYY) formats
+    const isDatePattern = word.startsWith('@') ||
+      word.match(/^[><]=?\d{4}-\d{2}-\d{2}$/) ||  // EN: >2024-01-01
+      word.match(/^[><]=?\d{2}[-\/]\d{2}[-\/]\d{4}$/) ||  // FR: >01-01-2024 or >01/01/2024
+      word.match(/^\d{4}-\d{2}-\d{2}\.\.\d{4}-\d{2}-\d{2}$/) ||  // EN range
+      word.match(/^\d{2}[-\/]\d{2}[-\/]\d{4}\.\.\d{2}[-\/]\d{2}[-\/]\d{4}$/);  // FR range
+    if (isDatePattern) {
       dateMatch = parseDateKeyword(word);
     }
     
@@ -257,21 +263,46 @@ function parseDateKeyword(word) {
     return keywords[word.toLowerCase()]();
   }
   
-  // Date comparison: >2024-01-01, <2024-12-31, >=, <=
-  const dateCompMatch = word.match(/^([><]=?)(\d{4}-\d{2}-\d{2})$/);
-  if (dateCompMatch) {
-    const op = dateCompMatch[1];
-    const date = new Date(dateCompMatch[2]);
-    date.setHours(0, 0, 0, 0);
-    return { type: 'compare', op, date };
+  // Helper to parse date string (supports EN: YYYY-MM-DD and FR: DD-MM-YYYY or DD/MM/YYYY)
+  function parseFlexDate(str) {
+    // EN format: YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      return new Date(str);
+    }
+    // FR format: DD-MM-YYYY or DD/MM/YYYY
+    const frMatch = str.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})$/);
+    if (frMatch) {
+      return new Date(`${frMatch[3]}-${frMatch[2]}-${frMatch[1]}`);
+    }
+    return null;
   }
   
-  // Date range: 2024-01-01..2024-12-31
-  const dateRangeMatch = word.match(/^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$/);
+  // Date comparison: >2024-01-01, <2024-12-31, >=, <= (EN format)
+  // Also supports: >01-01-2024, >01/01/2024 (FR format)
+  const dateCompMatchEN = word.match(/^([><]=?)(\d{4}-\d{2}-\d{2})$/);
+  const dateCompMatchFR = word.match(/^([><]=?)(\d{2}[-\/]\d{2}[-\/]\d{4})$/);
+  const dateCompMatch = dateCompMatchEN || dateCompMatchFR;
+  if (dateCompMatch) {
+    const op = dateCompMatch[1];
+    const date = parseFlexDate(dateCompMatch[2]);
+    if (date && !isNaN(date.getTime())) {
+      date.setHours(0, 0, 0, 0);
+      return { type: 'compare', op, date };
+    }
+  }
+  
+  // Date range: 2024-01-01..2024-12-31 (EN) or 01-01-2024..31-12-2024 (FR)
+  const dateRangeMatchEN = word.match(/^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$/);
+  const dateRangeMatchFR = word.match(/^(\d{2}[-\/]\d{2}[-\/]\d{4})\.\.(\d{2}[-\/]\d{2}[-\/]\d{4})$/);
+  const dateRangeMatch = dateRangeMatchEN || dateRangeMatchFR;
   if (dateRangeMatch) {
-    const start = new Date(dateRangeMatch[1]); start.setHours(0, 0, 0, 0);
-    const end = new Date(dateRangeMatch[2]); end.setHours(23, 59, 59, 999);
-    return { type: 'range', start, end };
+    const start = parseFlexDate(dateRangeMatch[1]);
+    const end = parseFlexDate(dateRangeMatch[2]);
+    if (start && end && !isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      return { type: 'range', start, end };
+    }
   }
   
   return null;
