@@ -62,29 +62,46 @@ function parseQuery(raw) {
   const rx = /("([^"]+)"|'(\S+)|\/([^/]+)\/|(\S+))/g;
   let m;
   while ((m = rx.exec(s)) !== null) {
-    const raw = m[0];
+    const rawTok = m[0];
     let word = m[2] || m[3] || m[4] || m[5] || '';
-    let negate = false, mod = '', rx = false, phrase = false, whole = false, cols = [];
+    let negate = false, mod = '', isRx = false, phrase = false, whole = false, cols = [];
+    let fuzzy = false, wildcard = false, dateMatch = null, numRange = null;
     
     if (m[2]) phrase = true;
     if (m[3]) { whole = true; word = m[3]; }
-    if (m[4]) { rx = true; word = m[4]; }
+    if (m[4]) { isRx = true; word = m[4]; }
     
     // Prefixes
     if (word.startsWith('!')) { negate = true; word = word.slice(1); }
-    if (word.startsWith('=')) { mod = '='; word = word.slice(1); }
-    else if (word.startsWith('<')) { mod = '<'; word = word.slice(1); }
-    else if (word.startsWith('>')) { mod = '>'; word = word.slice(1); }
+    if (word.startsWith('~')) { fuzzy = true; word = word.slice(1); }
+    else if (word.startsWith('=')) { mod = '='; word = word.slice(1); }
+    else if (word.startsWith('<') && !word.match(/^<=?\d/)) { mod = '<'; word = word.slice(1); }
+    else if (word.startsWith('>') && !word.match(/^>=?\d/)) { mod = '>'; word = word.slice(1); }
     
-    // Column scope
+    // Column scope (but not for @today, @week, etc.)
     const atIdx = word.indexOf('@');
-    if (atIdx > 0) {
+    if (atIdx > 0 && !word.startsWith('@')) {
       cols = word.slice(atIdx + 1).split(',').filter(Boolean);
       word = word.slice(0, atIdx);
     }
     
+    // Check for date keywords (@today, @week, @month, @year, @yesterday)
+    if (word.startsWith('@') || word.match(/^[><]=?\d{4}-\d{2}-\d{2}$/) || word.match(/^\d{4}-\d{2}-\d{2}\.\.\d{4}-\d{2}-\d{2}$/)) {
+      dateMatch = parseDateKeyword(word);
+    }
+    
+    // Check for numeric range (10..100, >50, <100, >=50, <=100)
+    if (!dateMatch && (word.match(/^\d+(\.\d+)?\.\./) || word.match(/^[><]=?\d/))) {
+      numRange = parseNumericRange(word);
+    }
+    
+    // Check for wildcard patterns (* or ?)
+    if (!isRx && !dateMatch && !numRange && (word.includes('*') || word.includes('?'))) {
+      wildcard = true;
+    }
+    
     if (word) {
-      tokens.push({ raw, word, negate, mod, rx, phrase, whole, cols });
+      tokens.push({ raw: rawTok, word, negate, mod, rx: isRx, phrase, whole, cols, fuzzy, wildcard, dateMatch, numRange });
     }
   }
   
@@ -93,16 +110,218 @@ function parseQuery(raw) {
 
 function matchVal(val, tok) {
   const v = val.toLowerCase(), w = tok.word.toLowerCase();
+  
+  // Regex mode
   if (tok.rx) { try { return new RegExp(w, 'i').test(val); } catch { return false; } }
+  
+  // Date keywords (@today, @week, etc.) or date comparisons
+  if (tok.dateMatch) {
+    return matchDate(val, tok.dateMatch);
+  }
+  
+  // Numeric range (10..100, >50, <100)
+  if (tok.numRange) {
+    return matchNumericRange(val, tok.numRange);
+  }
+  
+  // Wildcard patterns (* and ?)
+  if (tok.wildcard) {
+    return matchWildcard(val, tok.word);
+  }
+  
+  // Fuzzy search (~word)
+  if (tok.fuzzy) {
+    return fuzzyMatch(val, tok.word);
+  }
+  
+  // Exact phrase
   if (tok.phrase) return v.includes(w);
+  
+  // Modifiers
   if (tok.mod === '=') return v === w;
   if (tok.mod === '<') return v.startsWith(w);
   if (tok.mod === '>') return v.endsWith(w);
+  
+  // Whole word
   if (tok.whole) return new RegExp('(?<![\\w])' + escapeRegex(w) + '(?![\\w])', 'i').test(val);
+  
+  // Default: contains
   return v.includes(w);
 }
 
 function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// ══════════════════════════════════════════════════════════════
+// FUZZY SEARCH (Levenshtein distance)
+// ══════════════════════════════════════════════════════════════
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const d = Array.from({ length: m + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      d[i][j] = a[i-1] === b[j-1]
+        ? d[i-1][j-1]
+        : Math.min(d[i-1][j-1], d[i][j-1], d[i-1][j]) + 1;
+    }
+  }
+  return d[m][n];
+}
+
+function fuzzyMatch(val, word, threshold = 2) {
+  const v = val.toLowerCase();
+  const w = word.toLowerCase();
+  if (v.includes(w)) return true;
+  // Check each word in the value
+  const words = v.split(/\s+/);
+  for (const vw of words) {
+    if (vw.length >= 3 && w.length >= 3) {
+      const dist = levenshtein(vw.slice(0, Math.max(w.length, 5)), w);
+      const maxDist = Math.min(threshold, Math.floor(w.length / 3));
+      if (dist <= maxDist) return true;
+    }
+  }
+  return false;
+}
+
+// ══════════════════════════════════════════════════════════════
+// NUMERIC RANGE MATCHING
+// ══════════════════════════════════════════════════════════════
+function parseNumericRange(word) {
+  // Range: 10..100
+  const rangeMatch = word.match(/^(\d+(?:\.\d+)?)\.\.(\d+(?:\.\d+)?)$/);
+  if (rangeMatch) {
+    return { type: 'range', min: parseFloat(rangeMatch[1]), max: parseFloat(rangeMatch[2]) };
+  }
+  // Greater than: >100 or >=100
+  const gtMatch = word.match(/^(>=?)(\d+(?:\.\d+)?)$/);
+  if (gtMatch) {
+    return { type: gtMatch[1] === '>=' ? 'gte' : 'gt', value: parseFloat(gtMatch[2]) };
+  }
+  // Less than: <100 or <=100
+  const ltMatch = word.match(/^(<=?)(\d+(?:\.\d+)?)$/);
+  if (ltMatch) {
+    return { type: ltMatch[1] === '<=' ? 'lte' : 'lt', value: parseFloat(ltMatch[2]) };
+  }
+  return null;
+}
+
+function matchNumericRange(val, range) {
+  const num = parseFloat(val);
+  if (isNaN(num)) return false;
+  switch (range.type) {
+    case 'range': return num >= range.min && num <= range.max;
+    case 'gt': return num > range.value;
+    case 'gte': return num >= range.value;
+    case 'lt': return num < range.value;
+    case 'lte': return num <= range.value;
+    default: return false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// DATE MATCHING
+// ══════════════════════════════════════════════════════════════
+function parseDateKeyword(word) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const keywords = {
+    '@today': () => ({ type: 'exact', date: today }),
+    '@yesterday': () => {
+      const d = new Date(today); d.setDate(d.getDate() - 1);
+      return { type: 'exact', date: d };
+    },
+    '@week': () => {
+      const start = new Date(today);
+      start.setDate(start.getDate() - start.getDay());
+      const end = new Date(start); end.setDate(end.getDate() + 6);
+      return { type: 'range', start, end };
+    },
+    '@month': () => {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return { type: 'range', start, end };
+    },
+    '@year': () => {
+      const start = new Date(today.getFullYear(), 0, 1);
+      const end = new Date(today.getFullYear(), 11, 31);
+      return { type: 'range', start, end };
+    },
+  };
+  
+  if (keywords[word.toLowerCase()]) {
+    return keywords[word.toLowerCase()]();
+  }
+  
+  // Date comparison: >2024-01-01, <2024-12-31, >=, <=
+  const dateCompMatch = word.match(/^([><]=?)(\d{4}-\d{2}-\d{2})$/);
+  if (dateCompMatch) {
+    const op = dateCompMatch[1];
+    const date = new Date(dateCompMatch[2]);
+    date.setHours(0, 0, 0, 0);
+    return { type: 'compare', op, date };
+  }
+  
+  // Date range: 2024-01-01..2024-12-31
+  const dateRangeMatch = word.match(/^(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})$/);
+  if (dateRangeMatch) {
+    const start = new Date(dateRangeMatch[1]); start.setHours(0, 0, 0, 0);
+    const end = new Date(dateRangeMatch[2]); end.setHours(23, 59, 59, 999);
+    return { type: 'range', start, end };
+  }
+  
+  return null;
+}
+
+function matchDate(val, dateCond) {
+  let d;
+  if (typeof val === 'number') {
+    // Grist stores dates as Unix timestamps (seconds)
+    d = new Date(val * 1000);
+  } else if (typeof val === 'string') {
+    d = new Date(val);
+  } else {
+    return false;
+  }
+  if (isNaN(d.getTime())) return false;
+  d.setHours(0, 0, 0, 0);
+  
+  switch (dateCond.type) {
+    case 'exact':
+      return d.getTime() === dateCond.date.getTime();
+    case 'range':
+      return d >= dateCond.start && d <= dateCond.end;
+    case 'compare':
+      switch (dateCond.op) {
+        case '>': return d > dateCond.date;
+        case '>=': return d >= dateCond.date;
+        case '<': return d < dateCond.date;
+        case '<=': return d <= dateCond.date;
+      }
+  }
+  return false;
+}
+
+// ══════════════════════════════════════════════════════════════
+// WILDCARD MATCHING (* and ?)
+// ══════════════════════════════════════════════════════════════
+function wildcardToRegex(pattern) {
+  // * = any characters, ? = single character
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  const regex = escaped.replace(/\*/g, '.*').replace(/\?/g, '.');
+  return new RegExp('^' + regex + '$', 'i');
+}
+
+function matchWildcard(val, pattern) {
+  const rx = wildcardToRegex(pattern);
+  // Test against each word and the whole value
+  if (rx.test(val)) return true;
+  const words = val.split(/\s+/);
+  return words.some(w => rx.test(w));
+}
 
 function testRecord(rec, parsed) {
   const { mode, tokens } = parsed;
@@ -181,6 +400,10 @@ function renderTokens(tokens) {
   tokenList.innerHTML = tokens.map(t => {
     let cls = 'token';
     if (t.negate) cls += ' neg';
+    else if (t.dateMatch) cls += ' date';
+    else if (t.numRange) cls += ' numeric';
+    else if (t.fuzzy) cls += ' fuzzy';
+    else if (t.wildcard) cls += ' wildcard';
     else if (t.phrase) cls += ' phrase';
     return `<span class="${cls}">${t.raw}</span>`;
   }).join('');
@@ -191,6 +414,32 @@ function updateCount(n) {
   countBadge.className = 'count-badge' + (n === 0 ? ' zero' : '');
   modeBadge.textContent = APP.logicMode.toUpperCase();
   modeBadge.className = 'mode-badge' + (APP.logicMode === 'and' ? ' and' : '');
+}
+
+function formatValue(val, colName) {
+  if (val == null) return '';
+  
+  // Detect Unix timestamp (seconds since 1970)
+  // Grist stores dates as seconds, typical range: 946684800 (2000) to 2524608000 (2050)
+  if (typeof val === 'number' && val > 946684800 && val < 2524608000) {
+    // Check if column name suggests it's a date
+    const lowerCol = colName.toLowerCase();
+    const isDateCol = /date|created|updated|modified|embauche|naissance|debut|fin|start|end/i.test(lowerCol);
+    if (isDateCol) {
+      const d = new Date(val * 1000);
+      return d.toLocaleDateString('fr-FR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+  }
+  
+  // Detect ISO date strings
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('fr-FR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    }
+  }
+  
+  return String(val);
 }
 
 function renderResults(records) {
@@ -210,14 +459,14 @@ function renderResults(records) {
   emptyState.style.display = 'none';
   resultsTable.style.display = 'table';
   
-  const cols = [...APP.activeCols].slice(0, 8);
+  const cols = [...APP.activeCols];
   resultsHead.innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
   
   const displayRecords = records.slice(0, 100);
   resultsBody.innerHTML = displayRecords.map(rec => {
     return '<tr>' + cols.map(c => {
       const val = rec[c];
-      const display = val == null ? '' : String(val);
+      const display = formatValue(val, c);
       return `<td title="${display}">${display}</td>`;
     }).join('') + '</tr>';
   }).join('');

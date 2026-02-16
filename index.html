@@ -318,6 +318,10 @@ html, body {
 
 .token.neg { background: #fef2f2; color: var(--danger); }
 .token.phrase { background: #fefce8; color: #ca8a04; }
+.token.fuzzy { background: #f0fdf4; color: #16a34a; }
+.token.wildcard { background: #faf5ff; color: #9333ea; }
+.token.date { background: #fff7ed; color: #ea580c; }
+.token.numeric { background: #ecfeff; color: #0891b2; }
 
 .status-count {
   display: flex;
@@ -940,6 +944,16 @@ html, body {
       <div class="help-item"><code>"mot clé"</code><span>Expression exacte</span></div>
       <div class="help-item"><code>mot@Col</code><span>Dans une colonne</span></div>
       <div class="help-item"><code>/regex/</code><span>Expression régulière</span></div>
+      <div class="help-item"><code>~mot</code><span>Recherche floue (fuzzy)</span></div>
+      <div class="help-item"><code>Mar*</code><span>Wildcard (* = plusieurs)</span></div>
+      <div class="help-item"><code>M?ri?</code><span>Wildcard (? = un seul)</span></div>
+      <div class="help-item"><code>&gt;100</code><span>Supérieur à 100</span></div>
+      <div class="help-item"><code>&lt;50</code><span>Inférieur à 50</span></div>
+      <div class="help-item"><code>10..100</code><span>Plage numérique</span></div>
+      <div class="help-item"><code>@today</code><span>Date d'aujourd'hui</span></div>
+      <div class="help-item"><code>@week</code><span>Cette semaine</span></div>
+      <div class="help-item"><code>@month</code><span>Ce mois</span></div>
+      <div class="help-item"><code>&gt;2024-01-01</code><span>Après une date</span></div>
     </div>
   </div>
 </div>
