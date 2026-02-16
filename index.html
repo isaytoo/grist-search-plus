@@ -1384,6 +1384,8 @@ function buildSimpleQuery(raw) {
 function runFilter() {
   if (!APP.ready) return;
   
+  console.log('runFilter called, APP.records:', APP.records.length, 'activeCols:', [...APP.activeCols]);
+  
   let matched = [];
   const raw = APP.query.trim();
   const hasFilters = APP.filters.length > 0 && APP.filters.some(f => f.value || f.op === 'empty' || f.op === 'not_empty');
