@@ -14,1331 +14,1068 @@
 <!-- Grist Plugin API (CDN officiel) -->
 <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 <style>
 /* ═══════════════════════════════════════════
-   TOKENS & RESET
+   DESIGN TOKENS
 ═══════════════════════════════════════════ */
 :root {
-  --bg:          #f3f2ee;
-  --surface:     #ffffff;
-  --surf-alt:    #f8f7f4;
-  --border:      #e1ddd5;
-  --border-hi:   #2a7ae2;
-  --text:        #17160e;
-  --muted:       #6a6860;
-  --label:       #38372e;
-  --accent:      #2a7ae2;
-  --accent-dim:  #e5f0fd;
-  --green:       #2a9e68;
-  --red:         #d44f4f;
-  --orange:      #bf7800;
-  --purple:      #6b38c0;
-  --teal:        #1a8fa0;
-  --mono:        'IBM Plex Mono', monospace;
-  --sans:        'DM Sans', sans-serif;
-  --r:           6px;
-  --rs:          4px;
-  --sh:          0 1px 3px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04);
-  --sh-f:        0 0 0 3px rgba(42,122,226,.18);
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-hover: #f1f5f9;
+  --border: #e2e8f0;
+  --border-focus: #3b82f6;
+  --text: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-light: #eff6ff;
+  --accent-dark: #2563eb;
+  --success: #10b981;
+  --success-light: #ecfdf5;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+  --transition: 150ms ease;
 }
 
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);font-size:13px;line-height:1.4}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { 
+  height: 100%; 
+  font-family: var(--font); 
+  background: var(--bg); 
+  color: var(--text); 
+  font-size: 14px; 
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
 
-/* scrollbar */
-::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#ccc9c0;border-radius:3px}
-::-webkit-scrollbar-thumb:hover{background:#b5b2a8}
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
 /* ═══════════════════════════════════════════
-   LAYOUT
+   LAYOUT - Clean 2-zone layout
 ═══════════════════════════════════════════ */
-.w{display:flex;flex-direction:column;height:100vh;background:var(--surface);overflow:hidden}
-
-/* ── Search bar ── */
-.topbar{
-  display:flex;align-items:center;gap:8px;
-  padding:9px 12px;
-  border-bottom:1px solid var(--border);
-  background:var(--surf-alt);
-  flex-shrink:0
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--surface);
 }
-
-.search-wrap{flex:1;position:relative}
-
-.s-ico{
-  position:absolute;left:10px;top:50%;transform:translateY(-50%);
-  color:var(--muted);pointer-events:none
-}
-
-.s-input{
-  width:100%;
-  font-family:var(--mono);font-size:12.5px;
-  padding:7px 32px 7px 32px;
-  border:1.5px solid var(--border);border-radius:var(--r);
-  background:var(--surface);color:var(--text);outline:none;
-  transition:border-color .15s,box-shadow .15s
-}
-.s-input:focus{border-color:var(--border-hi);box-shadow:var(--sh-f)}
-.s-input::placeholder{color:#b8b4aa}
-
-.s-clear{
-  position:absolute;right:40px;top:50%;transform:translateY(-50%);
-  width:18px;height:18px;border-radius:50%;border:none;
-  background:#d5d2ca;color:var(--muted);cursor:pointer;
-  display:none;align-items:center;justify-content:center;
-  transition:background .1s
-}
-.s-clear:hover{background:#c0bdb5;color:var(--text)}
-.s-clear.show{display:flex}
-
-.s-search-btn{
-  position:absolute;right:6px;top:50%;transform:translateY(-50%);
-  width:26px;height:26px;border-radius:var(--rs);border:none;
-  background:var(--accent);color:white;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .15s,transform .1s;
-  opacity:0;pointer-events:none
-}
-.s-search-btn.show{opacity:1;pointer-events:auto}
-.s-search-btn:hover{background:var(--accent-hi);transform:translateY(-50%) scale(1.05)}
-.s-search-btn:active{transform:translateY(-50%) scale(0.95)}
-
-.ico-btn{
-  flex-shrink:0;width:32px;height:32px;border-radius:var(--rs);
-  border:1.5px solid var(--border);background:var(--surface);
-  color:var(--muted);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .1s,color .1s,border-color .1s
-}
-.ico-btn:hover{background:var(--bg);color:var(--text)}
-.ico-btn.on{background:var(--accent-dim);border-color:var(--border-hi);color:var(--accent)}
-
-/* ── Status bar ── */
-.statusbar{
-  display:flex;align-items:center;gap:6px;
-  padding:4px 12px;min-height:28px;
-  border-bottom:1px solid var(--border);
-  background:var(--surface);flex-shrink:0
-}
-
-.tok-list{flex:1;display:flex;flex-wrap:wrap;gap:4px}
-
-.tok{
-  display:inline-flex;align-items:center;
-  font-family:var(--mono);font-size:10px;font-weight:500;
-  padding:1px 7px;border-radius:20px;
-  animation:tpop .12s ease;white-space:nowrap
-}
-@keyframes tpop{from{transform:scale(.75);opacity:0}to{transform:scale(1);opacity:1}}
-
-.tok-def   {background:var(--accent-dim);color:var(--accent);   border:1px solid #bdd5f8}
-.tok-neg   {background:#fef0f0;color:var(--red);                border:1px solid #f7bebe}
-.tok-mod   {background:#fff8e6;color:var(--orange);             border:1px solid #f5d98a}
-.tok-rx    {background:#edfff5;color:var(--green);              border:1px solid #96dfc0}
-.tok-ph    {background:#f4f0ff;color:var(--purple);             border:1px solid #c9b8f8}
-.tok-scope {background:#eaf7fa;color:var(--teal);               border:1px solid #96d5e0}
-
-.mode-badge{
-  font-family:var(--mono);font-size:10px;font-weight:600;
-  padding:2px 8px;border-radius:20px;flex-shrink:0
-}
-.m-or  {background:var(--accent-dim);color:var(--accent); border:1px solid #bdd5f8}
-.m-and {background:#fff8e6;color:var(--orange);           border:1px solid #f5d98a}
-.m-and2{background:#edfff5;color:var(--green);            border:1px solid #96dfc0}
-
-.count-pill{
-  font-family:var(--mono);font-size:10.5px;font-weight:600;
-  padding:2px 9px;border-radius:20px;background:var(--accent);
-  color:white;flex-shrink:0;transition:background .2s,opacity .2s;
-  min-width:36px;text-align:center
-}
-.count-pill.zero{background:var(--muted)}
-.count-pill.hide{opacity:.4}
 
 /* ═══════════════════════════════════════════
-   SETTINGS PANEL (slide-down)
+   HEADER - Search + Actions
 ═══════════════════════════════════════════ */
-.cfg-panel{
-  border-bottom:1px solid var(--border);
-  background:var(--surf-alt);overflow:hidden;
-  transition:max-height .25s cubic-bezier(.4,0,.2,1);
-  max-height:0;flex-shrink:0
-}
-.cfg-panel.open{max-height:460px}
-
-.cfg-inner{padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
-
-.cfg-row{display:flex;align-items:center;gap:12px}
-.cfg-row.wrap{flex-wrap:wrap;gap:8px 16px}
-
-.cfg-label{
-  font-size:10.5px;font-weight:600;letter-spacing:.05em;
-  text-transform:uppercase;color:var(--muted);white-space:nowrap;
-  min-width:120px
+.header {
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.f-inp{
-  font-family:var(--mono);font-size:11.5px;
-  padding:5px 8px;border:1.5px solid var(--border);
-  border-radius:var(--rs);background:var(--surface);
-  color:var(--text);outline:none;flex:1;min-width:0;
-  transition:border-color .15s,box-shadow .15s
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.f-inp:focus{border-color:var(--border-hi);box-shadow:var(--sh-f)}
-.f-inp::placeholder{color:#c0bdb5}
 
-.f-sel{
-  font-family:var(--sans);font-size:12px;
-  padding:5px 26px 5px 8px;border:1.5px solid var(--border);
-  border-radius:var(--rs);background:var(--surface);
-  color:var(--text);appearance:none;cursor:pointer;outline:none;flex:1;min-width:0;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236a6860' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 8px center;
-  transition:border-color .15s
+.search-box {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
-.f-sel:focus{border-color:var(--border-hi)}
 
-/* toggle switch */
-.tog{position:relative;flex-shrink:0}
-.tog input{position:absolute;opacity:0;width:0;height:0}
-.tog-track{
-  display:block;width:30px;height:17px;
-  background:#ccc8c0;border-radius:9px;cursor:pointer;
-  transition:background .2s;position:relative
+.search-box svg {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
 }
-.tog-track::after{
-  content:'';position:absolute;left:3px;top:2.5px;
-  width:12px;height:12px;border-radius:50%;
-  background:white;box-shadow:0 1px 2px rgba(0,0,0,.2);
-  transition:transform .2s
+
+.search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 40px 0 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: var(--font);
+  background: var(--surface);
+  color: var(--text);
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
-.tog input:checked+.tog-track{background:var(--accent)}
-.tog input:checked+.tog-track::after{transform:translateX(13px)}
 
-.tog-lbl{font-size:12px;color:var(--label);cursor:pointer;user-select:none}
-
-.divider{height:1px;background:var(--border);margin:2px 0}
-
-/* Session badge */
-.session-indicator{
-  display:inline-flex;align-items:center;gap:5px;
-  font-family:var(--mono);font-size:10px;
-  padding:2px 8px;border-radius:20px;
-  background:#fff8e6;color:var(--orange);border:1px solid #f5d98a
+.search-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
-.session-dot{width:6px;height:6px;border-radius:50%;background:var(--orange);animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.search-input::placeholder { color: var(--text-muted); }
+
+.search-clear {
+  position: absolute;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: var(--surface-hover);
+  border-radius: 50%;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: background var(--transition);
+}
+
+.search-clear:hover { background: #e2e8f0; }
+.search-clear.show { display: flex; }
+
+/* Action buttons */
+.action-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.action-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.action-btn.active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 /* ═══════════════════════════════════════════
-   COLUMNS PANEL
+   OPTIONS BAR - Compact horizontal options
 ═══════════════════════════════════════════ */
-.cols-wrap{
-  flex:1;display:flex;flex-direction:column;
-  overflow:hidden;min-height:0
+.options-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.cols-hdr{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:8px 12px;border-bottom:1px solid var(--border);
-  background:var(--surf-alt);flex-shrink:0
+.option-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.cols-hdr-title{
-  font-size:10.5px;font-weight:600;letter-spacing:.05em;
-  text-transform:uppercase;color:var(--muted)
-}
-.cols-hdr-actions{display:flex;gap:5px}
 
-.btn-xs{
-  font-family:var(--sans);font-size:10.5px;font-weight:500;
-  padding:2px 9px;border-radius:var(--rs);
-  border:1.5px solid var(--border);background:var(--surface);
-  color:var(--muted);cursor:pointer;transition:background .1s,color .1s
+.option-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
-.btn-xs:hover{background:var(--bg);color:var(--text)}
 
-.col-list{flex:1;overflow-y:auto;padding:6px 8px}
+.pill-group {
+  display: flex;
+  gap: 4px;
+}
 
-.col-item{
-  display:flex;align-items:center;gap:8px;
-  padding:5px 8px;border-radius:var(--rs);
-  cursor:pointer;transition:background .1s;
-  border:1px solid transparent;margin-bottom:2px
+.pill {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
 }
-.col-item:hover{background:var(--surf-alt)}
-.col-item.on{background:var(--accent-dim);border-color:#bdd5f8}
 
-.col-item input[type=checkbox]{
-  accent-color:var(--accent);width:13px;height:13px;
-  flex-shrink:0;cursor:pointer
+.pill:hover {
+  background: var(--surface-hover);
+  border-color: #cbd5e1;
 }
-.col-id{
-  font-family:var(--mono);font-size:10.5px;
-  color:var(--accent);flex-shrink:0;min-width:80px
-}
-.col-lbl{font-size:11.5px;color:var(--label);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.col-type{font-family:var(--mono);font-size:9.5px;color:var(--muted);flex-shrink:0}
 
-/* State msg */
-.state-msg{
-  flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:8px;
-  color:var(--muted);font-size:12px;padding:24px;text-align:center
+.pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
 }
-.state-ico{font-size:26px;opacity:.5}
+
+.pill.active-green {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+/* Column tags */
+.col-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.col-tag {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.col-tag:hover { background: var(--surface-hover); }
+
+.col-tag.active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Table selector */
+.table-select {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.table-select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+/* ═══════════════════════════════════════════
+   MAIN CONTENT - Results area
+═══════════════════════════════════════════ */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  min-height: 36px;
+}
+
+.status-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.token {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'SF Mono', Monaco, monospace;
+  border-radius: 4px;
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.token.neg { background: #fef2f2; color: var(--danger); }
+.token.phrase { background: #fefce8; color: #ca8a04; }
+
+.status-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count-badge {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  background: var(--accent);
+  color: white;
+}
+
+.count-badge.zero {
+  background: var(--text-muted);
+}
+
+.mode-badge {
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  background: var(--success-light);
+  color: var(--success);
+  text-transform: uppercase;
+}
+
+.mode-badge.and { background: #fef3c7; color: #d97706; }
+
+/* Results table */
+.results-area {
+  flex: 1;
+  overflow: auto;
+  padding: 0;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.results-table th {
+  position: sticky;
+  top: 0;
+  padding: 10px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.results-table td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.results-table tr:hover td {
+  background: var(--surface-hover);
+}
+
+.results-table tr.selected td {
+  background: var(--accent-light);
+}
+
+/* Empty state */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.empty-state svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.empty-state p {
+  font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════
+   SETTINGS PANEL - Slide-in panel
+═══════════════════════════════════════════ */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition), visibility var(--transition);
+  z-index: 100;
+}
+
+.settings-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: -320px;
+  width: 320px;
+  height: 100%;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  transition: right 200ms ease;
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-panel.show {
+  right: 0;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.settings-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.settings-close:hover {
+  background: var(--surface-hover);
+}
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+
+.settings-row label {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.settings-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.settings-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #cbd5e1;
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: transform var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.toggle input:checked + .toggle-track {
+  background: var(--accent);
+}
+
+.toggle input:checked + .toggle-track::after {
+  transform: translateX(18px);
+}
+
+/* Columns list in settings */
+.columns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.column-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.column-item:hover {
+  background: var(--surface-hover);
+}
+
+.column-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.column-item span {
+  font-size: 13px;
+}
+
+.column-item .col-type {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
 
 /* ═══════════════════════════════════════════
    HELP PANEL
 ═══════════════════════════════════════════ */
-.help-bar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:7px 12px;border-top:1px solid var(--border);
-  background:var(--surf-alt);cursor:pointer;
-  font-size:12px;font-weight:500;color:var(--label);
-  border:none;width:100%;transition:background .1s;flex-shrink:0
+.help-panel {
+  position: fixed;
+  bottom: -100%;
+  left: 0;
+  right: 0;
+  max-height: 50vh;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.1);
+  transition: bottom 200ms ease;
+  z-index: 50;
+  overflow-y: auto;
 }
-.help-bar:hover{background:var(--border)}
-.help-chev{transition:transform .2s;color:var(--muted)}
-.help-chev.open{transform:rotate(180deg)}
 
-.help-body{
-  display:none;padding:10px 14px 14px;
-  border-top:1px solid var(--border);background:var(--surf-alt);
-  font-size:11.5px;line-height:1.7;color:var(--muted);
-  max-height:240px;overflow-y:auto;flex-shrink:0
+.help-panel.show {
+  bottom: 0;
 }
-.help-body.open{display:block}
-.help-body p{margin-bottom:8px;font-style:italic;color:var(--label)}
-.help-rule{display:flex;gap:8px;margin-bottom:4px;align-items:flex-start}
-.help-rule code{
-  font-family:var(--mono);font-size:10.5px;
-  background:var(--accent-dim);color:var(--accent);
-  padding:0 5px;border-radius:3px;white-space:nowrap;flex-shrink:0
+
+.help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+.help-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.help-content {
+  padding: 16px;
+}
+
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.help-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.help-item code {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.help-item span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════
+   LOADING STATE
+═══════════════════════════════════════════ */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ═══════════════════════════════════════════
-   MODE TOGGLE (Simple / Avancé)
+   FOOTER
 ═══════════════════════════════════════════ */
-.mode-toggle-bar{
-  display:flex;align-items:center;justify-content:center;gap:4px;
-  padding:6px 12px;border-bottom:1px solid var(--border);
-  background:var(--surf-alt);flex-shrink:0
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  padding: 4px 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+  z-index: 1000;
 }
-.mode-toggle-btn{
-  font-family:var(--sans);font-size:11px;font-weight:500;
-  padding:5px 14px;border-radius:20px;border:1.5px solid var(--border);
-  background:var(--surface);color:var(--muted);cursor:pointer;
-  transition:all .15s
+
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
 }
-.mode-toggle-btn:hover{background:var(--bg);color:var(--text)}
-.mode-toggle-btn.active{
-  background:var(--accent);border-color:var(--accent);color:white
+
+.footer a:hover {
+  text-decoration: underline;
 }
 
 /* ═══════════════════════════════════════════
-   SIMPLE MODE - Search options
+   ANIMATIONS
 ═══════════════════════════════════════════ */
-.simple-panel{
-  padding:12px;border-bottom:1px solid var(--border);
-  background:var(--surface);flex-shrink:0;
-  display:none
-}
-.simple-panel.show{display:block}
-
-.simple-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-.simple-row:last-child{margin-bottom:0}
-
-.simple-label{
-  font-size:11px;font-weight:600;color:var(--muted);
-  min-width:80px;text-transform:uppercase;letter-spacing:.03em
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.simple-chips{display:flex;gap:6px;flex-wrap:wrap}
-
-.chip{
-  font-family:var(--sans);font-size:11px;font-weight:500;
-  padding:4px 12px;border-radius:20px;
-  border:1.5px solid var(--border);background:var(--surface);
-  color:var(--label);cursor:pointer;transition:all .12s;
-  display:flex;align-items:center;gap:4px
-}
-.chip:hover{background:var(--bg);border-color:#c5c2ba}
-.chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
-.chip.active-green{background:#edfff5;border-color:var(--green);color:var(--green)}
-.chip.active-orange{background:#fff8e6;border-color:var(--orange);color:var(--orange)}
-.chip.active-red{background:#fef0f0;border-color:var(--red);color:var(--red)}
-
-.chip-icon{font-size:12px}
-
-/* ═══════════════════════════════════════════
-   FILTER BUILDER
-═══════════════════════════════════════════ */
-.filter-builder{
-  padding:12px;border-bottom:1px solid var(--border);
-  background:var(--surf-alt);flex-shrink:0;
-  display:none
-}
-.filter-builder.show{display:block}
-
-.filter-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:10px
-}
-.filter-title{
-  font-size:11px;font-weight:600;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.03em
-}
-
-.filter-list{display:flex;flex-direction:column;gap:8px}
-
-.filter-row{
-  display:flex;align-items:center;gap:6px;
-  padding:8px 10px;background:var(--surface);
-  border:1px solid var(--border);border-radius:var(--r);
-  animation:slideIn .15s ease
-}
-@keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-
-.filter-row select, .filter-row input{
-  font-family:var(--sans);font-size:11.5px;
-  padding:5px 8px;border:1.5px solid var(--border);
-  border-radius:var(--rs);background:var(--surface);
-  color:var(--text);outline:none;transition:border-color .15s
-}
-.filter-row select:focus, .filter-row input:focus{border-color:var(--accent)}
-.filter-row select{min-width:100px}
-.filter-row input{flex:1;min-width:80px}
-
-.filter-row .filter-col{min-width:120px}
-.filter-row .filter-op{min-width:110px}
-
-.filter-remove{
-  width:24px;height:24px;border-radius:50%;border:none;
-  background:#fee2e2;color:var(--red);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;transition:background .1s;flex-shrink:0
-}
-.filter-remove:hover{background:#fecaca}
-
-.filter-logic{
-  display:flex;align-items:center;justify-content:center;
-  padding:2px 0
-}
-.filter-logic-badge{
-  font-family:var(--mono);font-size:9px;font-weight:600;
-  padding:2px 10px;border-radius:10px;
-  background:var(--accent-dim);color:var(--accent);
-  cursor:pointer;transition:all .1s
-}
-.filter-logic-badge:hover{background:#d0e4fc}
-.filter-logic-badge.and{background:#fff8e6;color:var(--orange)}
-
-.btn-add-filter{
-  display:flex;align-items:center;gap:6px;
-  font-family:var(--sans);font-size:11px;font-weight:500;
-  padding:6px 12px;border-radius:var(--rs);
-  border:1.5px dashed var(--border);background:transparent;
-  color:var(--muted);cursor:pointer;transition:all .1s;
-  margin-top:8px
-}
-.btn-add-filter:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
-
-/* Column tags in simple mode */
-.col-tags{
-  display:flex;flex-wrap:wrap;gap:4px;
-  max-height:60px;overflow-y:auto;flex:1
-}
-.col-tag{
-  font-family:var(--mono);font-size:10px;
-  padding:3px 8px;border-radius:12px;
-  border:1px solid var(--border);background:var(--surface);
-  color:var(--muted);cursor:pointer;transition:all .1s
-}
-.col-tag:hover{border-color:#b5b2a8}
-.col-tag.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
-
-/* Hide advanced elements in simple mode */
-.simple-mode .statusbar{display:none}
-.simple-mode .help-bar{display:none}
-.simple-mode .help-body{display:none}
-
-/* Save results button */
-.btn-save-results{
-  width:28px;height:28px;border-radius:var(--rs);
-  border:1.5px solid var(--border);background:var(--surface);
-  color:var(--muted);cursor:pointer;font-size:14px;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .15s;flex-shrink:0
-}
-.btn-save-results:hover{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
-.btn-save-results:disabled{opacity:.4;cursor:not-allowed}
-
-/* Save modal */
-.save-modal{
-  position:fixed;top:0;left:0;right:0;bottom:0;
-  background:rgba(0,0,0,.5);display:flex;
-  align-items:center;justify-content:center;z-index:1000
-}
-.save-modal.hidden{display:none}
-.save-modal-content{
-  background:var(--surface);border-radius:var(--r);
-  padding:20px;width:90%;max-width:400px;
-  box-shadow:0 10px 40px rgba(0,0,0,.2)
-}
-.save-modal-title{
-  font-size:14px;font-weight:600;margin-bottom:16px;
-  display:flex;align-items:center;gap:8px
-}
-.save-modal-row{margin-bottom:12px}
-.save-modal-label{
-  font-size:11px;font-weight:600;color:var(--muted);
-  text-transform:uppercase;margin-bottom:4px;display:block
-}
-.save-modal-input{
-  width:100%;font-family:var(--mono);font-size:12px;
-  padding:8px 10px;border:1.5px solid var(--border);
-  border-radius:var(--rs);background:var(--surface);
-  color:var(--text);outline:none
-}
-.save-modal-input:focus{border-color:var(--accent)}
-.save-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
-.save-modal-btn{
-  font-family:var(--sans);font-size:12px;font-weight:500;
-  padding:8px 16px;border-radius:var(--rs);cursor:pointer;
-  border:1.5px solid var(--border);background:var(--surface);
-  color:var(--label);transition:all .1s
-}
-.save-modal-btn:hover{background:var(--bg)}
-.save-modal-btn.primary{
-  background:var(--accent);border-color:var(--accent);color:white
-}
-.save-modal-btn.primary:hover{background:#2563eb}
-.save-modal-btn:disabled{opacity:.5;cursor:not-allowed}
-.save-modal-info{
-  font-size:11px;color:var(--muted);margin-top:8px;
-  padding:8px;background:var(--surf-alt);border-radius:var(--rs)
-}
-
-/* Results panel */
-.results-panel{
-  display:none;flex-direction:column;
-  border-bottom:1px solid var(--border);
-  background:var(--surface);max-height:300px;
-  overflow:hidden
-}
-.results-panel.show{display:flex}
-.results-hdr{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:8px 12px;border-bottom:1px solid var(--border);
-  background:var(--surf-alt);flex-shrink:0
-}
-.results-title{
-  font-size:11px;font-weight:600;color:var(--label)
-}
-.results-table-wrap{
-  flex:1;overflow:auto;padding:0
-}
-.results-table{
-  width:100%;border-collapse:collapse;font-size:11px
-}
-.results-table th{
-  position:sticky;top:0;background:var(--surf-alt);
-  padding:6px 10px;text-align:left;font-weight:600;
-  color:var(--muted);border-bottom:1px solid var(--border);
-  white-space:nowrap
-}
-.results-table td{
-  padding:6px 10px;border-bottom:1px solid var(--border);
-  color:var(--text);max-width:200px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap
-}
-.results-table tr:hover td{background:var(--accent-dim)}
-.results-table tr.highlight td{background:#fff8e6}
-.results-empty{
-  padding:20px;text-align:center;color:var(--muted);font-size:12px
+.fade-in {
+  animation: fadeIn 150ms ease;
 }
 </style>
 </head>
 <body>
-<div class="w">
 
-  <!-- ── Search bar ── -->
-  <div class="topbar">
-    <div class="search-wrap">
-      <svg class="s-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input class="s-input" id="sInput" type="text" placeholder="Rechercher…" autocomplete="off" spellcheck="false">
-      <button class="s-clear" id="sClear">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+<div class="app">
+  <!-- HEADER -->
+  <header class="header">
+    <!-- Search row -->
+    <div class="search-row">
+      <div class="search-box">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" class="search-input" id="searchInput" placeholder="Rechercher dans les données..." autocomplete="off" spellcheck="false">
+        <button class="search-clear" id="searchClear">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      
+      <button class="action-btn" id="btnHelp" title="Aide syntaxe">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/>
+        </svg>
       </button>
-      <button class="s-search-btn" id="sSearchBtn" title="Rechercher (Entrée)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      
+      <button class="action-btn" id="btnSettings" title="Paramètres">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
       </button>
     </div>
-
-    <!-- Settings -->
-    <button class="ico-btn" id="btnCfg" title="Paramètres">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-    </button>
-
-    <!-- Help -->
-    <button class="ico-btn" id="btnHelp" title="Aide syntaxe">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
-    </button>
-  </div>
-
-  <!-- ── Mode Toggle ── -->
-  <div class="mode-toggle-bar">
-    <button class="mode-toggle-btn active" id="btnModeSimple">🎯 Simple</button>
-    <button class="mode-toggle-btn" id="btnModeAdvanced">⚡ Avancé</button>
-  </div>
-
-  <!-- ── Simple Mode Panel ── -->
-  <div class="simple-panel show" id="simplePanel">
-    <div class="simple-row">
-      <span class="simple-label">Recherche</span>
-      <div class="simple-chips">
-        <button class="chip active" data-match="contains"><span class="chip-icon">📝</span> Contient</button>
-        <button class="chip" data-match="starts"><span class="chip-icon">▶️</span> Commence par</button>
-        <button class="chip" data-match="ends"><span class="chip-icon">⏹️</span> Finit par</button>
-        <button class="chip" data-match="exact"><span class="chip-icon">🎯</span> Égal à</button>
+    
+    <!-- Options bar -->
+    <div class="options-bar">
+      <div class="option-group">
+        <span class="option-label">Mode</span>
+        <div class="pill-group">
+          <button class="pill active" data-match="contains">Contient</button>
+          <button class="pill" data-match="starts">Commence</button>
+          <button class="pill" data-match="exact">Exact</button>
+        </div>
       </div>
-    </div>
-    <div class="simple-row">
-      <span class="simple-label">Logique</span>
-      <div class="simple-chips">
-        <button class="chip active-green" data-logic="or"><span class="chip-icon">🔀</span> Au moins un mot (OU)</button>
-        <button class="chip" data-logic="and"><span class="chip-icon">🔗</span> Tous les mots (ET)</button>
+      
+      <div class="option-group">
+        <span class="option-label">Logique</span>
+        <div class="pill-group">
+          <button class="pill active-green" data-logic="or">OU</button>
+          <button class="pill" data-logic="and">ET</button>
+        </div>
       </div>
-    </div>
-    <div class="simple-row">
-      <span class="simple-label">Colonnes</span>
-      <div class="col-tags" id="colTagsSimple">
-        <!-- Filled dynamically -->
+      
+      <div class="option-group">
+        <span class="option-label">Colonnes</span>
+        <div class="col-tags" id="colTags">
+          <!-- Filled dynamically -->
+        </div>
       </div>
-    </div>
-  </div>
-
-  <!-- ── Filter Builder ── -->
-  <div class="filter-builder show" id="filterBuilder">
-    <div class="filter-header">
-      <span class="filter-title">🔧 Filtres avancés</span>
-      <button class="btn-xs" id="btnClearFilters">Effacer tout</button>
-    </div>
-    <div class="filter-list" id="filterList">
-      <!-- Filter rows added dynamically -->
-    </div>
-    <button class="btn-add-filter" id="btnAddFilter">
-      <span>➕</span> Ajouter un filtre
-    </button>
-  </div>
-
-  <!-- ── Status bar ── -->
-  <div class="statusbar">
-    <div class="tok-list" id="tokList"></div>
-    <span class="mode-badge m-or" id="modeBadge">OR</span>
-    <span class="count-pill zero" id="cPill">0</span>
-    <button class="btn-save-results" id="btnSaveResults" title="Enregistrer les résultats dans une nouvelle table">💾</button>
-  </div>
-
-  <!-- ── Settings panel ── -->
-  <div class="cfg-panel" id="cfgPanel">
-    <div class="cfg-inner">
-
-      <!-- Table selection -->
-      <div class="cfg-row">
-        <span class="cfg-label">Table source</span>
-        <select class="f-sel" id="cfgTable">
-          <option value="">— Vue liée au widget —</option>
-        </select>
-        <button class="btn-xs" id="btnRefreshTables" title="Rafraîchir">🔄</button>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- Mode + placeholder -->
-      <div class="cfg-row">
-        <span class="cfg-label">Mode par défaut</span>
-        <select class="f-sel" id="cfgMode">
-          <option value="or">OR — union des mots</option>
-          <option value="and">AND ligne (&amp;)</option>
-          <option value="and2">AND colonne (&amp;&amp;)</option>
+      
+      <div class="option-group" style="margin-left: auto;">
+        <span class="option-label">Table</span>
+        <select class="table-select" id="tableSelect">
+          <option value="">Vue liée</option>
         </select>
       </div>
-
-      <div class="cfg-row">
-        <span class="cfg-label">Placeholder</span>
-        <input class="f-inp" id="cfgPH" placeholder="Rechercher…">
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- Session sharing -->
-      <div class="cfg-row wrap">
-        <label class="cfg-row" style="gap:8px;cursor:pointer">
-          <label class="tog"><input type="checkbox" id="cfgSess"><span class="tog-track"></span></label>
-          <span class="tog-lbl">Sauvegarder la recherche (sessionStorage)</span>
-        </label>
-      </div>
-
-      <div class="cfg-row" id="sessIdRow" style="opacity:.4;pointer-events:none">
-        <span class="cfg-label">Session ID</span>
-        <input class="f-inp" id="cfgSessId" placeholder="ex: search-main">
-        <span id="sessIndicator" style="display:none">
-          <span class="session-indicator"><span class="session-dot"></span>Actif</span>
-        </span>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- Hidden cols -->
-      <div class="cfg-row wrap">
-        <label class="cfg-row" style="gap:8px;cursor:pointer">
-          <label class="tog"><input type="checkbox" id="cfgHidden"><span class="tog-track"></span></label>
-          <span class="tog-lbl">Inclure les colonnes masquées</span>
-        </label>
-      </div>
-
     </div>
-  </div>
-
-  <!-- ── Results panel (when table selected via selector) ── -->
-  <div class="results-panel" id="resultsPanel">
-    <div class="results-hdr">
-      <span class="results-title" id="resultsTitle">📋 Résultats (0)</span>
-      <button class="btn-xs" id="btnToggleResults">Masquer</button>
+  </header>
+  
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="status-left">
+        <div class="status-tokens" id="tokenList">
+          <!-- Tokens appear here -->
+        </div>
+      </div>
+      <div class="status-count">
+        <span class="mode-badge" id="modeBadge">OU</span>
+        <span class="count-badge zero" id="countBadge">0</span>
+      </div>
     </div>
-    <div class="results-table-wrap" id="resultsTableWrap">
-      <table class="results-table" id="resultsTable">
+    
+    <!-- Results area -->
+    <div class="results-area" id="resultsArea">
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <h3>Commencez votre recherche</h3>
+        <p>Tapez un mot-clé pour filtrer les données</p>
+      </div>
+      
+      <!-- Results table -->
+      <table class="results-table" id="resultsTable" style="display: none;">
         <thead id="resultsHead"></thead>
         <tbody id="resultsBody"></tbody>
       </table>
-    </div>
-  </div>
-
-  <!-- ── Columns panel ── -->
-  <div class="cols-wrap">
-    <div class="cols-hdr">
-      <span class="cols-hdr-title" id="colsTitle">Colonnes (0)</span>
-      <div class="cols-hdr-actions">
-        <button class="btn-xs" id="btnAll">Tout</button>
-        <button class="btn-xs" id="btnNone">Aucun</button>
+      
+      <!-- Loading state -->
+      <div class="loading" id="loadingState" style="display: none;">
+        <div class="spinner"></div>
       </div>
     </div>
+  </main>
+</div>
 
-    <div class="col-list" id="colList"></div>
-
-    <div class="state-msg" id="stateMsg">
-      <div class="state-ico">⏳</div>
-      <span>En attente de données Grist…</span>
-    </div>
+<!-- SETTINGS PANEL -->
+<div class="settings-overlay" id="settingsOverlay"></div>
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-header">
+    <span class="settings-title">Paramètres</span>
+    <button class="settings-close" id="settingsClose">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6 6 18M6 6l12 12"/>
+      </svg>
+    </button>
   </div>
-
-  <!-- ── Help toggle ── -->
-  <button class="help-bar" id="helpBar" style="border-top:1px solid var(--border)">
-    <span>💡 Syntaxe avancée</span>
-    <svg class="help-chev" id="helpChev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
-  </button>
-  <div class="help-body" id="helpBody">
-    <p>Recherche OR par défaut — mots séparés par espaces, sur toutes les colonnes actives.</p>
-    <div class="help-rule"><code>&amp;</code><span>Tous les mots présents dans la ligne</span></div>
-    <div class="help-rule"><code>&amp;&amp;</code><span>Tous les mots dans la même colonne</span></div>
-    <div class="help-rule"><code>!mot</code><span>Le mot ne doit pas être présent</span></div>
-    <div class="help-rule"><code>=mot</code><span>Égalité exacte (espace → <code>\s</code>)</span></div>
-    <div class="help-rule"><code>&lt;mot</code><span>La cellule commence par ce mot</span></div>
-    <div class="help-rule"><code>&gt;mot</code><span>La cellule finit par ce mot</span></div>
-    <div class="help-rule"><code>"mot clé"</code><span>Guillemets → un seul mot (espaces inclus)</span></div>
-    <div class="help-rule"><code>'mot</code><span>Mot indépendant (<code>ok</code> ≠ <code>books</code>)</span></div>
-    <div class="help-rule"><code>mot@C1,C2</code><span>Cherche ce mot dans C1 et C2 uniquement</span></div>
-    <div class="help-rule"><code>@C1,C2</code><span>Restreint tous les mots à ces colonnes</span></div>
-    <div class="help-rule"><code>/regex/</code><span>Expression régulière (<code>\s</code> = espace)</span></div>
-  </div>
-
-  <!-- ── Save Results Modal ── -->
-  <div class="save-modal hidden" id="saveModal">
-    <div class="save-modal-content">
-      <div class="save-modal-title">💾 Enregistrer les résultats</div>
-      <div class="save-modal-row">
-        <label class="save-modal-label">Nom de la nouvelle table</label>
-        <input type="text" class="save-modal-input" id="saveTableName" placeholder="Resultats_recherche">
-      </div>
-      <div class="save-modal-row">
-        <label class="save-modal-label">Colonnes à inclure</label>
-        <select class="save-modal-input" id="saveColsMode">
-          <option value="active">Colonnes actives uniquement</option>
-          <option value="all">Toutes les colonnes</option>
-        </select>
-      </div>
-      <div class="save-modal-info" id="saveInfo">
-        <span id="saveCount">0</span> lignes seront enregistrées
-      </div>
-      <div class="save-modal-actions">
-        <button class="save-modal-btn" id="btnCancelSave">Annuler</button>
-        <button class="save-modal-btn primary" id="btnConfirmSave">Enregistrer</button>
+  <div class="settings-body">
+    <div class="settings-section">
+      <div class="settings-section-title">Colonnes actives</div>
+      <div class="columns-list" id="columnsList">
+        <!-- Filled dynamically -->
       </div>
     </div>
+    
+    <div class="settings-section">
+      <div class="settings-section-title">Options</div>
+      <div class="settings-row">
+        <label>Colonnes masquées</label>
+        <label class="toggle">
+          <input type="checkbox" id="showHiddenCols">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="settings-row">
+        <label>Sauvegarder recherche</label>
+        <label class="toggle">
+          <input type="checkbox" id="saveSession">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <div class="settings-section-title">Avancé</div>
+      <label style="font-size: 13px; color: var(--text);">Mode par défaut</label>
+      <select class="settings-select" id="defaultMode" style="margin-top: 8px;">
+        <option value="or">OU — union des mots</option>
+        <option value="and">ET — tous les mots</option>
+      </select>
+    </div>
   </div>
+</div>
 
-</div><!-- .w -->
+<!-- HELP PANEL -->
+<div class="help-panel" id="helpPanel">
+  <div class="help-header">
+    <span class="help-title">Syntaxe de recherche</span>
+    <button class="settings-close" id="helpClose">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6 6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <div class="help-content">
+    <div class="help-grid">
+      <div class="help-item"><code>mot</code><span>Recherche simple</span></div>
+      <div class="help-item"><code>!mot</code><span>Exclure ce mot</span></div>
+      <div class="help-item"><code>=mot</code><span>Égalité exacte</span></div>
+      <div class="help-item"><code>&lt;mot</code><span>Commence par</span></div>
+      <div class="help-item"><code>&gt;mot</code><span>Finit par</span></div>
+      <div class="help-item"><code>"mot clé"</code><span>Expression exacte</span></div>
+      <div class="help-item"><code>mot@Col</code><span>Dans une colonne</span></div>
+      <div class="help-item"><code>/regex/</code><span>Expression régulière</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <span>© 2026 Said Hamadou (isaytoo)</span>
+  <a href="https://gristup.fr" target="_blank">gristup.fr</a>
+</footer>
 
 <script>
 /**
- * Grist Search Plus Widget
+ * Grist Search Plus Widget - v3 Modern UX
  * Copyright 2026 Said Hamadou (isaytoo)
  * Licensed under the Apache License, Version 2.0
- * https://github.com/isaytoo/grist-search-plus
  */
 
-/* ═══════════════════════════════════════════════════════════
-   GRIST SEARCH WIDGET v2
-   Gallery-ready: manifest.json + index.html
-   - empty query → 0 rows (aucune ligne)
-   - session sharing via sessionStorage + broadcast
-   - live column config
-   - full search syntax engine
-═══════════════════════════════════════════════════════════ */
-
-// ── App state ──────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// APP STATE
+// ══════════════════════════════════════════════════════════════
 const APP = {
-  records:      [],
-  columns:      [],            // {id, label, type, hidden}
-  activeCols:   new Set(),
-  query:        '',
-  defaultMode:  'or',
-  ready:        false,
-  sessEnabled:  false,
-  sessId:       'grist-search',
-  gristReady:   false,
-  // Simple mode state
-  uiMode:       'simple',      // 'simple' or 'advanced'
-  simpleMatch:  'contains',    // 'contains', 'starts', 'ends', 'exact'
-  simpleLogic:  'or',          // 'or', 'and'
-  filters:      [],            // [{id, col, op, value}]
-  filterLogic:  'or',          // 'or', 'and'
-  filterIdCounter: 0,
-  // Table selection
-  availableTables: [],
-  selectedTable: '',           // '' = use linked view, otherwise table name
-  linkedRecords: [],           // Records from linked view (original)
-  // Filtered results for saving
+  records: [],
+  columns: [],
+  activeCols: new Set(),
+  query: '',
+  matchMode: 'contains',
+  logicMode: 'or',
+  ready: false,
+  gristReady: false,
+  selectedTable: '',
+  linkedRecords: [],
   lastMatchedRecords: [],
+  sessEnabled: false,
+  availableTables: [],
 };
 
-// ── DOM ────────────────────────────────────────────────────
-const sInput     = document.getElementById('sInput');
-const sClear     = document.getElementById('sClear');
-const tokList    = document.getElementById('tokList');
-const modeBadge  = document.getElementById('modeBadge');
-const cPill      = document.getElementById('cPill');
-const cfgPanel   = document.getElementById('cfgPanel');
-const btnCfg     = document.getElementById('btnCfg');
-const btnHelp    = document.getElementById('btnHelp');
-const helpBody   = document.getElementById('helpBody');
-const helpChev   = document.getElementById('helpChev');
-const helpBar    = document.getElementById('helpBar');
-const colList    = document.getElementById('colList');
-const stateMsg   = document.getElementById('stateMsg');
-const colsTitle  = document.getElementById('colsTitle');
-const cfgMode    = document.getElementById('cfgMode');
-const cfgPH      = document.getElementById('cfgPH');
-const cfgSess    = document.getElementById('cfgSess');
-const cfgSessId  = document.getElementById('cfgSessId');
-const sessIdRow  = document.getElementById('sessIdRow');
-const sessIndicator = document.getElementById('sessIndicator');
-const cfgHidden  = document.getElementById('cfgHidden');
-const cfgTable   = document.getElementById('cfgTable');
-const btnRefreshTables = document.getElementById('btnRefreshTables');
+// ══════════════════════════════════════════════════════════════
+// DOM ELEMENTS
+// ══════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const searchInput = $('searchInput');
+const searchClear = $('searchClear');
+const colTags = $('colTags');
+const tableSelect = $('tableSelect');
+const tokenList = $('tokenList');
+const modeBadge = $('modeBadge');
+const countBadge = $('countBadge');
+const resultsArea = $('resultsArea');
+const emptyState = $('emptyState');
+const resultsTable = $('resultsTable');
+const resultsHead = $('resultsHead');
+const resultsBody = $('resultsBody');
+const loadingState = $('loadingState');
+const settingsOverlay = $('settingsOverlay');
+const settingsPanel = $('settingsPanel');
+const columnsList = $('columnsList');
+const helpPanel = $('helpPanel');
 
-// Save results DOM
-const btnSaveResults = document.getElementById('btnSaveResults');
-const saveModal = document.getElementById('saveModal');
-const saveTableName = document.getElementById('saveTableName');
-const saveColsMode = document.getElementById('saveColsMode');
-const saveCount = document.getElementById('saveCount');
-const btnCancelSave = document.getElementById('btnCancelSave');
-const btnConfirmSave = document.getElementById('btnConfirmSave');
-
-// Results panel DOM
-const resultsPanel = document.getElementById('resultsPanel');
-const resultsTitle = document.getElementById('resultsTitle');
-const resultsHead = document.getElementById('resultsHead');
-const resultsBody = document.getElementById('resultsBody');
-const resultsTableWrap = document.getElementById('resultsTableWrap');
-const btnToggleResults = document.getElementById('btnToggleResults');
-
-// Simple mode DOM
-const btnModeSimple = document.getElementById('btnModeSimple');
-const btnModeAdvanced = document.getElementById('btnModeAdvanced');
-const simplePanel = document.getElementById('simplePanel');
-const filterBuilder = document.getElementById('filterBuilder');
-const filterList = document.getElementById('filterList');
-const btnAddFilter = document.getElementById('btnAddFilter');
-const btnClearFilters = document.getElementById('btnClearFilters');
-const colTagsSimple = document.getElementById('colTagsSimple');
-const wrapperEl = document.querySelector('.w');
-
-/* ═══════════════════════════════════════════════════════════
-   TABLE SELECTION FUNCTIONS
-═══════════════════════════════════════════════════════════ */
-
-async function loadAvailableTables() {
-  if (!APP.gristReady) return;
-  
-  try {
-    const tables = await grist.docApi.listTables();
-    APP.availableTables = tables.filter(t => !t.startsWith('_grist') && !t.startsWith('GristHidden'));
-    
-    // Update select options
-    cfgTable.innerHTML = '<option value="">— Vue liée au widget —</option>' +
-      APP.availableTables.map(t => `<option value="${t}" ${APP.selectedTable === t ? 'selected' : ''}>${t}</option>`).join('');
-  } catch (e) {
-    console.warn('Erreur chargement tables:', e);
-  }
-}
-
-async function selectTable(tableName) {
-  APP.selectedTable = tableName;
-  
-  if (!tableName) {
-    // Revenir aux données liées au widget
-    APP.records = APP.linkedRecords;
-    if (APP.linkedRecords.length > 0) {
-      rebuildColumnsFromRecords(APP.linkedRecords);
-    }
-  } else {
-    // Charger les données de la table sélectionnée
-    try {
-      stateMsg.innerHTML = '<div class="state-ico">⏳</div><span>Chargement de ' + tableName + '…</span>';
-      stateMsg.style.display = 'flex';
-      
-      const data = await grist.docApi.fetchTable(tableName);
-      
-      // Convert column-based data to row-based records
-      const records = [];
-      const ids = data.id || [];
-      const columns = Object.keys(data).filter(k => k !== 'id' && k !== 'manualSort');
-      
-      for (let i = 0; i < ids.length; i++) {
-        const rec = { id: ids[i] };
-        columns.forEach(col => {
-          rec[col] = data[col][i];
-        });
-        records.push(rec);
-      }
-      
-      APP.records = records;
-      APP.ready = true;
-      console.log('selectTable: loaded', records.length, 'records from', tableName, records);
-      rebuildColumnsFromRecords(records);
-      
-      stateMsg.style.display = 'none';
-    } catch (e) {
-      console.error('Erreur chargement table:', e);
-      stateMsg.innerHTML = '<div class="state-ico">❌</div><span>Erreur: ' + e.message + '</span>';
-    }
-  }
-  
-  runFilter();
-}
-
-function rebuildColumnsFromRecords(records) {
-  console.log('rebuildColumnsFromRecords called with', records.length, 'records');
-  if (!records.length) {
-    APP.columns = [];
-    APP.activeCols.clear();
-    renderCols();
-    renderColTagsSimple();
-    return;
-  }
-  
-  const skip = new Set(['id', 'manualSort']);
-  APP.columns = Object.keys(records[0])
-    .filter(k => !skip.has(k))
-    .map(k => ({ id: k, label: k, type: inferType(records[0][k]), hidden: false }));
-  
-  APP.activeCols.clear();
-  APP.columns.forEach(c => APP.activeCols.add(c.id));
-  
-  console.log('rebuildColumnsFromRecords: columns:', APP.columns.map(c => c.id));
-  console.log('rebuildColumnsFromRecords: activeCols:', [...APP.activeCols]);
-  
-  renderCols();
-  renderColTagsSimple();
-  renderFilters(); // Update filter column dropdowns
-}
-
-/* ═══════════════════════════════════════════════════════════
-   RESULTS DISPLAY FUNCTIONS
-═══════════════════════════════════════════════════════════ */
-
-let resultsVisible = true;
-
-function renderResults(records) {
-  // Show results panel when there's an active search query or filters
-  const hasQuery = APP.query && APP.query.trim();
-  const hasFilters = APP.filters.length > 0 && APP.filters.some(f => f.value || f.op === 'empty' || f.op === 'not_empty');
-  
-  if (hasQuery || hasFilters || records.length > 0) {
-    resultsPanel.classList.add('show');
-  } else {
-    resultsPanel.classList.remove('show');
-    return;
-  }
-  
-  resultsTitle.textContent = `📋 Résultats (${records.length})`;
-  
-  if (records.length === 0) {
-    resultsHead.innerHTML = '';
-    resultsBody.innerHTML = '<tr><td class="results-empty" colspan="100">Aucun résultat</td></tr>';
-    return;
-  }
-  
-  // Build header with active columns
-  const cols = [...APP.activeCols].slice(0, 6); // Limit to 6 columns for display
-  resultsHead.innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
-  
-  // Build body (limit to 50 rows for performance)
-  const displayRecords = records.slice(0, 50);
-  resultsBody.innerHTML = displayRecords.map(rec => {
-    return '<tr>' + cols.map(c => {
-      const val = rec[c];
-      const display = val === null || val === undefined ? '' : String(val);
-      return `<td title="${display}">${display}</td>`;
-    }).join('') + '</tr>';
-  }).join('');
-  
-  if (records.length > 50) {
-    resultsBody.innerHTML += `<tr><td class="results-empty" colspan="${cols.length}">... et ${records.length - 50} autres lignes</td></tr>`;
-  }
-}
-
-function toggleResultsPanel() {
-  resultsVisible = !resultsVisible;
-  resultsTableWrap.style.display = resultsVisible ? 'block' : 'none';
-  btnToggleResults.textContent = resultsVisible ? 'Masquer' : 'Afficher';
-}
-
-/* ═══════════════════════════════════════════════════════════
-   SAVE RESULTS FUNCTIONS
-═══════════════════════════════════════════════════════════ */
-
-function openSaveModal() {
-  if (APP.lastMatchedRecords.length === 0) {
-    alert('Aucun résultat à enregistrer. Effectuez d\'abord une recherche.');
-    return;
-  }
-  
-  // Generate default table name
-  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  saveTableName.value = 'Resultats_' + timestamp;
-  saveCount.textContent = APP.lastMatchedRecords.length;
-  
-  saveModal.classList.remove('hidden');
-}
-
-function closeSaveModal() {
-  saveModal.classList.add('hidden');
-}
-
-async function saveResultsToTable() {
-  if (!APP.gristReady) {
-    alert('Grist non disponible');
-    return;
-  }
-  
-  const tableName = saveTableName.value.trim().replace(/[^a-zA-Z0-9_]/g, '_');
-  if (!tableName) {
-    alert('Veuillez entrer un nom de table valide');
-    return;
-  }
-  
-  const useAllCols = saveColsMode.value === 'all';
-  const colsToUse = useAllCols 
-    ? APP.columns.map(c => c.id)
-    : [...APP.activeCols];
-  
-  if (colsToUse.length === 0) {
-    alert('Aucune colonne sélectionnée');
-    return;
-  }
-  
-  btnConfirmSave.disabled = true;
-  btnConfirmSave.textContent = 'Enregistrement...';
-  
-  try {
-    // Check if table exists
-    const existingTables = await grist.docApi.listTables();
-    
-    if (existingTables.includes(tableName)) {
-      if (!confirm(`La table "${tableName}" existe déjà. Voulez-vous y ajouter les données ?`)) {
-        btnConfirmSave.disabled = false;
-        btnConfirmSave.textContent = 'Enregistrer';
-        return;
-      }
-    } else {
-      // Create new table with columns
-      const colDefs = colsToUse.map(colId => {
-        const col = APP.columns.find(c => c.id === colId);
-        return { id: colId, type: col?.type || 'Text' };
-      });
-      
-      await grist.docApi.applyUserActions([
-        ['AddTable', tableName, colDefs]
-      ]);
-    }
-    
-    // Prepare records for insertion
-    const recordsToAdd = APP.lastMatchedRecords.map(rec => {
-      const newRec = {};
-      colsToUse.forEach(colId => {
-        if (rec[colId] !== undefined) {
-          newRec[colId] = rec[colId];
-        }
-      });
-      return newRec;
-    });
-    
-    // Add records in batches of 100
-    const batchSize = 100;
-    for (let i = 0; i < recordsToAdd.length; i += batchSize) {
-      const batch = recordsToAdd.slice(i, i + batchSize);
-      const actions = batch.map(rec => ['AddRecord', tableName, null, rec]);
-      await grist.docApi.applyUserActions(actions);
-    }
-    
-    closeSaveModal();
-    alert(`✅ ${recordsToAdd.length} lignes enregistrées dans "${tableName}"`);
-    
-    // Refresh available tables
-    loadAvailableTables();
-    
-  } catch (e) {
-    console.error('Erreur sauvegarde:', e);
-    alert('Erreur: ' + e.message);
-  } finally {
-    btnConfirmSave.disabled = false;
-    btnConfirmSave.textContent = 'Enregistrer';
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   SIMPLE MODE FUNCTIONS
-═══════════════════════════════════════════════════════════ */
-
-function setUIMode(mode) {
-  APP.uiMode = mode;
-  
-  // Toggle buttons
-  btnModeSimple.classList.toggle('active', mode === 'simple');
-  btnModeAdvanced.classList.toggle('active', mode === 'advanced');
-  
-  // Toggle panels
-  simplePanel.classList.toggle('show', mode === 'simple');
-  filterBuilder.classList.toggle('show', mode === 'simple');
-  
-  // Toggle body class for hiding advanced elements
-  wrapperEl.classList.toggle('simple-mode', mode === 'simple');
-  
-  // Re-run filter
-  runFilter();
-}
-
-function renderColTagsSimple() {
-  colTagsSimple.innerHTML = '';
-  const showHidden = cfgHidden.checked;
-  const cols = APP.columns.filter(c => showHidden || !c.hidden);
-  
-  cols.forEach(col => {
-    const tag = document.createElement('span');
-    tag.className = 'col-tag' + (APP.activeCols.has(col.id) ? ' active' : '');
-    tag.textContent = col.label || col.id;
-    tag.addEventListener('click', () => {
-      if (APP.activeCols.has(col.id)) {
-        APP.activeCols.delete(col.id);
-      } else {
-        APP.activeCols.add(col.id);
-      }
-      renderColTagsSimple();
-      renderCols();
-      runFilter();
-    });
-    colTagsSimple.appendChild(tag);
-  });
-}
-
-function addFilter(col = '', op = 'contains', value = '') {
-  const id = ++APP.filterIdCounter;
-  APP.filters.push({ id, col, op, value });
-  renderFilters();
-}
-
-function removeFilter(id) {
-  APP.filters = APP.filters.filter(f => f.id !== id);
-  renderFilters();
-  runFilter();
-}
-
-function updateFilter(id, field, value) {
-  const filter = APP.filters.find(f => f.id === id);
-  if (filter) {
-    filter[field] = value;
-    runFilter();
-  }
-}
-
-function renderFilters() {
-  filterList.innerHTML = '';
-  
-  APP.filters.forEach((filter, index) => {
-    // Add logic badge between filters
-    if (index > 0) {
-      const logicDiv = document.createElement('div');
-      logicDiv.className = 'filter-logic';
-      const badge = document.createElement('span');
-      badge.className = 'filter-logic-badge' + (APP.filterLogic === 'and' ? ' and' : '');
-      badge.textContent = APP.filterLogic === 'and' ? 'ET' : 'OU';
-      badge.addEventListener('click', () => {
-        APP.filterLogic = APP.filterLogic === 'or' ? 'and' : 'or';
-        renderFilters();
-        runFilter();
-      });
-      logicDiv.appendChild(badge);
-      filterList.appendChild(logicDiv);
-    }
-    
-    const row = document.createElement('div');
-    row.className = 'filter-row';
-    
-    // Column select
-    const colSelect = document.createElement('select');
-    colSelect.className = 'filter-col';
-    colSelect.innerHTML = '<option value="">Toutes colonnes</option>' +
-      APP.columns.map(c => `<option value="${c.id}" ${filter.col === c.id ? 'selected' : ''}>${c.label || c.id}</option>`).join('');
-    colSelect.addEventListener('change', () => updateFilter(filter.id, 'col', colSelect.value));
-    
-    // Operator select
-    const opSelect = document.createElement('select');
-    opSelect.className = 'filter-op';
-    opSelect.innerHTML = `
-      <option value="contains" ${filter.op === 'contains' ? 'selected' : ''}>contient</option>
-      <option value="not_contains" ${filter.op === 'not_contains' ? 'selected' : ''}>ne contient pas</option>
-      <option value="starts" ${filter.op === 'starts' ? 'selected' : ''}>commence par</option>
-      <option value="ends" ${filter.op === 'ends' ? 'selected' : ''}>finit par</option>
-      <option value="exact" ${filter.op === 'exact' ? 'selected' : ''}>égal à</option>
-      <option value="not_exact" ${filter.op === 'not_exact' ? 'selected' : ''}>différent de</option>
-      <option value="empty" ${filter.op === 'empty' ? 'selected' : ''}>est vide</option>
-      <option value="not_empty" ${filter.op === 'not_empty' ? 'selected' : ''}>n'est pas vide</option>
-    `;
-    opSelect.addEventListener('change', () => updateFilter(filter.id, 'op', opSelect.value));
-    
-    // Value input
-    const valueInput = document.createElement('input');
-    valueInput.type = 'text';
-    valueInput.placeholder = 'Valeur...';
-    valueInput.value = filter.value;
-    valueInput.addEventListener('input', () => updateFilter(filter.id, 'value', valueInput.value));
-    
-    // Hide value input for empty/not_empty operators
-    if (filter.op === 'empty' || filter.op === 'not_empty') {
-      valueInput.style.display = 'none';
-    }
-    
-    // Remove button
-    const removeBtn = document.createElement('button');
-    removeBtn.className = 'filter-remove';
-    removeBtn.innerHTML = '×';
-    removeBtn.addEventListener('click', () => removeFilter(filter.id));
-    
-    row.append(colSelect, opSelect, valueInput, removeBtn);
-    filterList.appendChild(row);
-  });
-}
-
-/* ═══════════════════════════════════════════════════════════
-   SEARCH ENGINE
-═══════════════════════════════════════════════════════════ */
-
+// ══════════════════════════════════════════════════════════════
+// SEARCH ENGINE
+// ══════════════════════════════════════════════════════════════
 function parseQuery(raw) {
-  raw = raw.trim();
-  let mode = APP.defaultMode;
-
-  if (raw.startsWith('&&')) { mode = 'and2'; raw = raw.slice(2).trim(); }
-  else if (raw.startsWith('&')) { mode = 'and'; raw = raw.slice(1).trim(); }
-
   const tokens = [];
-  let globalScope = null;
-  const re = /("(?:[^"\\]|\\.)*"|'?\S+)/g;
+  let mode = APP.logicMode;
+  let s = raw.trim();
+  
+  // Mode prefix
+  if (s.startsWith('&&')) { mode = 'and2'; s = s.slice(2).trim(); }
+  else if (s.startsWith('&')) { mode = 'and'; s = s.slice(1).trim(); }
+  
+  // Tokenize
+  const rx = /("([^"]+)"|'(\S+)|\/([^/]+)\/|(\S+))/g;
   let m;
-  while ((m = re.exec(raw)) !== null) {
-    const t = tokenize(m[1]);
-    if (!t.word && t.cols.length) globalScope = t.cols;
-    else tokens.push(t);
+  while ((m = rx.exec(s)) !== null) {
+    const raw = m[0];
+    let word = m[2] || m[3] || m[4] || m[5] || '';
+    let negate = false, mod = '', rx = false, phrase = false, whole = false, cols = [];
+    
+    if (m[2]) phrase = true;
+    if (m[3]) { whole = true; word = m[3]; }
+    if (m[4]) { rx = true; word = m[4]; }
+    
+    // Prefixes
+    if (word.startsWith('!')) { negate = true; word = word.slice(1); }
+    if (word.startsWith('=')) { mod = '='; word = word.slice(1); }
+    else if (word.startsWith('<')) { mod = '<'; word = word.slice(1); }
+    else if (word.startsWith('>')) { mod = '>'; word = word.slice(1); }
+    
+    // Column scope
+    const atIdx = word.indexOf('@');
+    if (atIdx > 0) {
+      cols = word.slice(atIdx + 1).split(',').filter(Boolean);
+      word = word.slice(0, atIdx);
+    }
+    
+    if (word) {
+      tokens.push({ raw, word, negate, mod, rx, phrase, whole, cols });
+    }
   }
-  if (globalScope) tokens.forEach(t => { if (!t.cols.length) t.cols = globalScope; });
-  return { mode, tokens };
-}
-
-function tokenize(raw) {
-  let s = raw, negate = false, mod = '', rx = false, phrase = false, whole = false, cols = [];
-
-  // Quoted phrase
-  if (s.startsWith('"') && s.endsWith('"') && s.length > 2) {
-    phrase = true; s = s.slice(1, -1);
-    const ai = s.lastIndexOf('@');
-    if (ai !== -1 && !s.endsWith('@@')) { cols = s.slice(ai+1).split(',').filter(Boolean); s = s.slice(0,ai); }
-    return { raw, negate, mod, rx, phrase, word: s, cols, whole };
-  }
-  if (s.startsWith("'")) { whole = true; s = s.slice(1); }
-  if (s.startsWith('!')) { negate = true; s = s.slice(1); }
-  if (['=','<','>'].includes(s[0])) { mod = s[0]; s = s.slice(1); }
-  if (s.startsWith('/')) { rx = true; s = s.slice(1); if (s.endsWith('/')) s = s.slice(0,-1); }
-
-  if (!rx) {
-    // Handle trailing @cols (but not @@)
-    const am = s.match(/^(.*[^@])@([^@].*)$/);
-    if (am) { s = am[1]; cols = am[2].split(',').filter(Boolean); }
-    else if (s.match(/^@([^@].+)$/)) { cols = s.slice(1).split(',').filter(Boolean); s = ''; }
-    if (mod === '=') s = s.replace(/\\s/g, ' ');
-  }
-  return { raw, negate, mod, rx, phrase, word: s, cols, whole };
+  
+  return { tokens, mode };
 }
 
 function matchVal(val, tok) {
   const v = val.toLowerCase(), w = tok.word.toLowerCase();
-  if (tok.rx)    { try { return new RegExp(w.replace(/\\s/g,' '),'i').test(val); } catch { return false; } }
-  if (tok.phrase){ return v.includes(w); }
+  if (tok.rx) { try { return new RegExp(w, 'i').test(val); } catch { return false; } }
+  if (tok.phrase) return v.includes(w);
   if (tok.mod === '=') return v === w;
   if (tok.mod === '<') return v.startsWith(w);
   if (tok.mod === '>') return v.endsWith(w);
-  if (tok.whole) return new RegExp('(?<![\\w])' + esc(w) + '(?![\\w])','i').test(val);
+  if (tok.whole) return new RegExp('(?<![\\w])' + escapeRegex(w) + '(?![\\w])', 'i').test(val);
   return v.includes(w);
 }
 
-function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
 function testRecord(rec, parsed) {
   const { mode, tokens } = parsed;
   const active = [...APP.activeCols];
   if (!tokens.length) return false;
-
+  
   const testTok = tok => {
     const cols = tok.cols.length ? tok.cols : active;
     const vals = cols.map(c => String(rec[c] ?? '')).filter(Boolean);
-    const hit  = vals.some(v => matchVal(v, tok));
+    const hit = vals.some(v => matchVal(v, tok));
     return tok.negate ? !hit : hit;
   };
-
-  if (mode === 'or')   return tokens.some(testTok);
-  if (mode === 'and')  return tokens.every(testTok);
+  
+  if (mode === 'or') return tokens.some(testTok);
+  if (mode === 'and') return tokens.every(testTok);
   if (mode === 'and2') {
     for (const col of active) {
-      const singleActive = [col];
       const testTokCol = tok => {
-        const cols = tok.cols.length ? tok.cols : singleActive;
+        const cols = tok.cols.length ? tok.cols : [col];
         const vals = cols.map(c => String(rec[c] ?? '')).filter(Boolean);
-        const hit  = vals.some(v => matchVal(v, tok));
+        const hit = vals.some(v => matchVal(v, tok));
         return tok.negate ? !hit : hit;
       };
       if (tokens.every(testTokCol)) return true;
@@ -1348,334 +1085,231 @@ function testRecord(rec, parsed) {
   return false;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   FILTER & GRIST OUTPUT
-═══════════════════════════════════════════════════════════ */
-
-// Test a single filter against a record
-function testFilterOnRecord(rec, filter) {
-  const cols = filter.col ? [filter.col] : [...APP.activeCols];
-  const vals = cols.map(c => String(rec[c] ?? '')).filter(v => v !== '');
-  const searchVal = (filter.value || '').toLowerCase();
-  
-  switch (filter.op) {
-    case 'contains':
-      return vals.some(v => v.toLowerCase().includes(searchVal));
-    case 'not_contains':
-      return !vals.some(v => v.toLowerCase().includes(searchVal));
-    case 'starts':
-      return vals.some(v => v.toLowerCase().startsWith(searchVal));
-    case 'ends':
-      return vals.some(v => v.toLowerCase().endsWith(searchVal));
-    case 'exact':
-      return vals.some(v => v.toLowerCase() === searchVal);
-    case 'not_exact':
-      return !vals.some(v => v.toLowerCase() === searchVal);
-    case 'empty':
-      return vals.length === 0 || vals.every(v => v.trim() === '');
-    case 'not_empty':
-      return vals.some(v => v.trim() !== '');
-    default:
-      return vals.some(v => v.toLowerCase().includes(searchVal));
-  }
-}
-
-// Build query from simple mode settings
-function buildSimpleQuery(raw) {
+function buildQuery(raw) {
   if (!raw.trim()) return '';
-  
   const words = raw.trim().split(/\s+/);
-  let prefix = '';
+  let prefix = APP.logicMode === 'and' ? '& ' : '';
   let modifier = '';
   
-  // Logic prefix
-  if (APP.simpleLogic === 'and') prefix = '& ';
-  
-  // Match modifier
-  switch (APP.simpleMatch) {
+  switch (APP.matchMode) {
     case 'starts': modifier = '<'; break;
-    case 'ends': modifier = '>'; break;
     case 'exact': modifier = '='; break;
     default: modifier = ''; break;
   }
   
-  // Build query with modifiers
-  const modifiedWords = words.map(w => modifier + w);
-  return prefix + modifiedWords.join(' ');
+  return prefix + words.map(w => modifier + w).join(' ');
 }
 
+// ══════════════════════════════════════════════════════════════
+// FILTER & DISPLAY
+// ══════════════════════════════════════════════════════════════
 function runFilter() {
   if (!APP.ready) return;
   
-  console.log('runFilter called, APP.records:', APP.records.length, 'activeCols:', [...APP.activeCols]);
-  
-  let matched = [];
   const raw = APP.query.trim();
-  const hasFilters = APP.filters.length > 0 && APP.filters.some(f => f.value || f.op === 'empty' || f.op === 'not_empty');
+  let matched = [];
   
-  // If in simple mode, use simple logic
-  if (APP.uiMode === 'simple') {
-    // Start with all records or filter by text search
-    if (raw) {
-      const simpleQuery = buildSimpleQuery(raw);
-      console.log('runFilter: simpleQuery:', simpleQuery);
-      const parsed = parseQuery(simpleQuery);
-      console.log('runFilter: parsed:', parsed);
-      console.log('runFilter: testing records:', APP.records);
-      matched = APP.records.filter(r => {
-        const result = testRecord(r, parsed);
-        console.log('runFilter: testRecord', r, 'result:', result);
-        return result;
-      });
-      updateTokens(parsed.tokens, parsed.mode);
-    } else {
-      matched = [...APP.records];
-      updateTokens(null, APP.simpleLogic);
-    }
-    
-    // Apply visual filters
-    if (hasFilters) {
-      const activeFilters = APP.filters.filter(f => f.value || f.op === 'empty' || f.op === 'not_empty');
-      
-      if (APP.filterLogic === 'and') {
-        matched = matched.filter(rec => activeFilters.every(f => testFilterOnRecord(rec, f)));
-      } else {
-        // OR logic: if we have text search results, combine with filter results
-        if (raw) {
-          const filterMatched = APP.records.filter(rec => activeFilters.some(f => testFilterOnRecord(rec, f)));
-          // Union of text search and filter results
-          const matchedIds = new Set(matched.map(r => r.id));
-          filterMatched.forEach(r => { if (!matchedIds.has(r.id)) matched.push(r); });
-        } else {
-          matched = matched.filter(rec => activeFilters.some(f => testFilterOnRecord(rec, f)));
-        }
-      }
-    }
-    
-    // If no search and no filters, show nothing
-    if (!raw && !hasFilters) {
-      send([]);
-      setCount(0, 'zero');
-      return;
-    }
-    
-  } else {
-    // Advanced mode - original behavior
-    if (!raw) {
-      send([]);
-      setCount(0, 'zero');
-      updateTokens(null, 'or');
-      return;
-    }
-    
-    const parsed = parseQuery(raw);
-    updateTokens(parsed.tokens, parsed.mode);
+  if (raw) {
+    const query = buildQuery(raw);
+    const parsed = parseQuery(query);
     matched = APP.records.filter(r => testRecord(r, parsed));
+    renderTokens(parsed.tokens);
+  } else {
+    matched = [];
+    renderTokens([]);
   }
   
-  // Store matched records for potential saving
   APP.lastMatchedRecords = matched;
-  
-  console.log('runFilter: matched', matched.length, 'records, query:', APP.query);
-  
-  // Render results in the panel (for table selector mode)
   renderResults(matched);
+  updateCount(matched.length);
   
-  send(matched.map(r => r.id));
-  setCount(matched.length, matched.length === 0 ? 'zero' : '');
-}
-
-function send(rowIds) {
+  // Send to Grist
   if (APP.gristReady) {
-    try { grist.setSelectedRows(rowIds); } catch(e) { console.warn(e); }
+    try { grist.setSelectedRows(matched.map(r => r.id)); } catch(e) {}
   }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   UI UPDATES
-═══════════════════════════════════════════════════════════ */
-
-function setCount(n, cls) {
-  cPill.textContent = String(n);
-  cPill.className = 'count-pill ' + (cls || '');
+function renderTokens(tokens) {
+  tokenList.innerHTML = tokens.map(t => {
+    let cls = 'token';
+    if (t.negate) cls += ' neg';
+    else if (t.phrase) cls += ' phrase';
+    return `<span class="${cls}">${t.raw}</span>`;
+  }).join('');
 }
 
-function updateTokens(tokens, mode) {
-  tokList.innerHTML = '';
-  // Mode badge
-  const modeMap = { or:['OR','m-or'], and:['AND &','m-and'], and2:['AND &&','m-and2'] };
-  const [lbl, mcls] = modeMap[mode || 'or'] || ['OR','m-or'];
-  modeBadge.textContent = lbl;
-  modeBadge.className = 'mode-badge ' + mcls;
-  if (!tokens) return;
-
-  tokens.forEach(tok => {
-    const span = document.createElement('span');
-    let cls = 'tok-def';
-    if (tok.negate)          cls = 'tok-neg';
-    else if (tok.rx)         cls = 'tok-rx';
-    else if (tok.phrase)     cls = 'tok-ph';
-    else if (tok.mod)        cls = 'tok-mod';
-    else if (tok.cols.length)cls = 'tok-scope';
-    span.className = 'tok ' + cls;
-    span.textContent = tok.raw;
-    tokList.appendChild(span);
-  });
+function updateCount(n) {
+  countBadge.textContent = n;
+  countBadge.className = 'count-badge' + (n === 0 ? ' zero' : '');
+  modeBadge.textContent = APP.logicMode.toUpperCase();
+  modeBadge.className = 'mode-badge' + (APP.logicMode === 'and' ? ' and' : '');
 }
 
-/* ═══════════════════════════════════════════════════════════
-   COLUMN LIST RENDERING
-═══════════════════════════════════════════════════════════ */
+function renderResults(records) {
+  if (records.length === 0) {
+    resultsTable.style.display = 'none';
+    emptyState.style.display = 'flex';
+    if (APP.query.trim()) {
+      emptyState.querySelector('h3').textContent = 'Aucun résultat';
+      emptyState.querySelector('p').textContent = 'Essayez avec d\'autres mots-clés';
+    } else {
+      emptyState.querySelector('h3').textContent = 'Commencez votre recherche';
+      emptyState.querySelector('p').textContent = 'Tapez un mot-clé pour filtrer les données';
+    }
+    return;
+  }
+  
+  emptyState.style.display = 'none';
+  resultsTable.style.display = 'table';
+  
+  const cols = [...APP.activeCols].slice(0, 8);
+  resultsHead.innerHTML = '<tr>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  
+  const displayRecords = records.slice(0, 100);
+  resultsBody.innerHTML = displayRecords.map(rec => {
+    return '<tr>' + cols.map(c => {
+      const val = rec[c];
+      const display = val == null ? '' : String(val);
+      return `<td title="${display}">${display}</td>`;
+    }).join('') + '</tr>';
+  }).join('');
+}
 
-function renderCols() {
-  const showHidden = cfgHidden.checked;
-  const cols = APP.columns.filter(c => showHidden || !c.hidden);
-
-  colList.innerHTML = '';
-  stateMsg.style.display = cols.length ? 'none' : 'flex';
-
-  cols.forEach(col => {
-    const on = APP.activeCols.has(col.id);
-    const div = document.createElement('div');
-    div.className = 'col-item' + (on ? ' on' : '');
-
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = on;
-
-    const id = document.createElement('span');
-    id.className = 'col-id';
-    id.textContent = col.id;
-
-    const lbl = document.createElement('span');
-    lbl.className = 'col-lbl';
-    lbl.textContent = col.label || col.id;
-
-    const tp = document.createElement('span');
-    tp.className = 'col-type';
-    tp.textContent = shortType(col.type);
-
-    div.append(cb, id, lbl, tp);
-
-    const toggle = val => {
-      if (val) APP.activeCols.add(col.id);
-      else     APP.activeCols.delete(col.id);
-      renderCols();
+// ══════════════════════════════════════════════════════════════
+// COLUMN TAGS
+// ══════════════════════════════════════════════════════════════
+function renderColTags() {
+  colTags.innerHTML = APP.columns.slice(0, 6).map(c => {
+    const active = APP.activeCols.has(c.id);
+    return `<button class="col-tag${active ? ' active' : ''}" data-col="${c.id}">${c.id}</button>`;
+  }).join('');
+  
+  if (APP.columns.length > 6) {
+    colTags.innerHTML += `<button class="col-tag" id="moreColsBtn">+${APP.columns.length - 6}</button>`;
+  }
+  
+  // Event listeners
+  colTags.querySelectorAll('.col-tag[data-col]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const col = btn.dataset.col;
+      if (APP.activeCols.has(col)) {
+        APP.activeCols.delete(col);
+        btn.classList.remove('active');
+      } else {
+        APP.activeCols.add(col);
+        btn.classList.add('active');
+      }
+      renderColumnsList();
       runFilter();
-    };
-    div.addEventListener('click', e => { if (e.target === cb) return; cb.checked = !cb.checked; toggle(cb.checked); });
-    cb.addEventListener('change', () => toggle(cb.checked));
-
-    colList.appendChild(div);
+    });
   });
+  
+  const moreBtn = $('moreColsBtn');
+  if (moreBtn) {
+    moreBtn.addEventListener('click', () => openSettings());
+  }
+}
 
-  colsTitle.textContent = `Colonnes actives (${APP.activeCols.size}/${cols.length})`;
+function renderColumnsList() {
+  columnsList.innerHTML = APP.columns.map(c => {
+    const checked = APP.activeCols.has(c.id) ? 'checked' : '';
+    return `
+      <label class="column-item">
+        <input type="checkbox" data-col="${c.id}" ${checked}>
+        <span>${c.id}</span>
+        <span class="col-type">${shortType(c.type)}</span>
+      </label>
+    `;
+  }).join('');
+  
+  columnsList.querySelectorAll('input[data-col]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const col = cb.dataset.col;
+      if (cb.checked) APP.activeCols.add(col);
+      else APP.activeCols.delete(col);
+      renderColTags();
+      runFilter();
+    });
+  });
 }
 
 function shortType(t) {
-  if (!t) return '';
-  const map = { Text:'Txt', Numeric:'Num', Integer:'Int', Bool:'Bool',
-                Date:'Date', DateTime:'DT', Choice:'Cho', ChoiceList:'ChL',
-                Reference:'Ref', ReferenceList:'RefL', Attachments:'Att' };
-  return map[t] || t.slice(0,3);
+  const map = { Text: 'TXT', Numeric: 'NUM', Bool: 'BOOL', Date: 'DATE' };
+  return map[t] || 'TXT';
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SESSION STORAGE + BROADCAST (partage entre widgets)
-═══════════════════════════════════════════════════════════ */
-
-const BROADCAST_KEY = '__grist_search_bc__';
-
-function sessKey() { return 'grist-search:' + (APP.sessId || 'default'); }
-
-function saveSession(q) {
-  if (!APP.sessEnabled) return;
+// ══════════════════════════════════════════════════════════════
+// TABLE SELECTION
+// ══════════════════════════════════════════════════════════════
+async function loadAvailableTables() {
+  if (!APP.gristReady) return;
   try {
-    sessionStorage.setItem(sessKey(), q);
-    // Broadcast to other widgets on same page via storage event trick
-    sessionStorage.setItem(BROADCAST_KEY, JSON.stringify({ id: APP.sessId, q, ts: Date.now() }));
-  } catch {}
-}
-
-function loadSession() {
-  if (!APP.sessEnabled) return;
-  try {
-    const saved = sessionStorage.getItem(sessKey());
-    if (saved !== null) {
-      sInput.value = saved;
-      APP.query = saved;
-      sClear.classList.toggle('show', !!saved);
-    }
-  } catch {}
-}
-
-// Listen for broadcasts from sibling widgets
-window.addEventListener('storage', e => {
-  if (e.key !== BROADCAST_KEY || !APP.sessEnabled) return;
-  try {
-    const { id, q } = JSON.parse(e.newValue || '{}');
-    if (id === APP.sessId && q !== APP.query) {
-      sInput.value = q;
-      APP.query = q;
-      sClear.classList.toggle('show', !!q);
-      runFilter();
-    }
-  } catch {}
-});
-
-/* ═══════════════════════════════════════════════════════════
-   GRIST INTEGRATION
-═══════════════════════════════════════════════════════════ */
-
-function initGrist() {
-  try {
-    grist.ready({
-      requiredAccess: 'full',
-      columns: [],       // accept any column mapping
-    });
-
-    APP.gristReady = true;
-
-    // Load available tables immediately when Grist is ready
-    loadAvailableTables();
-
-    grist.onRecords((records, mappings) => {
-      // Store linked records
-      APP.linkedRecords = records || [];
-      
-      // Only use linked records if no table is selected
-      if (!APP.selectedTable) {
-        APP.records = APP.linkedRecords;
-      }
-
-      if (!APP.ready && records.length > 0) {
-        // Build column list from record keys
-        const skip = new Set(['id', 'manualSort']);
-        APP.columns = Object.keys(records[0])
-          .filter(k => !skip.has(k))
-          .map(k => ({ id: k, label: k, type: inferType(records[0][k]), hidden: false }));
-
-        APP.columns.forEach(c => APP.activeCols.add(c.id));
-        APP.ready = true;
-        stateMsg.style.display = 'none';
-        renderCols();
-        renderColTagsSimple();
-        loadSession();
-        runFilter();
-      } else if (APP.ready && !APP.selectedTable) {
-        runFilter();
-      }
-    });
-
-    // Also react to table schema changes
-    grist.on('message', msg => {
-      if (msg && msg.tableId) runFilter();
-    });
-  } catch(e) {
-    console.warn('Grist API not available — using demo data', e);
-    APP.gristReady = false;
-    loadDemo();
+    const tables = await grist.docApi.listTables();
+    APP.availableTables = tables.filter(t => !t.startsWith('_grist') && !t.startsWith('GristHidden'));
+    tableSelect.innerHTML = '<option value="">Vue liée</option>' +
+      APP.availableTables.map(t => `<option value="${t}">${t}</option>`).join('');
+  } catch (e) {
+    console.warn('Error loading tables:', e);
   }
+}
+
+async function selectTable(tableName) {
+  APP.selectedTable = tableName;
+  
+  if (!tableName) {
+    APP.records = APP.linkedRecords;
+    if (APP.linkedRecords.length > 0) {
+      rebuildColumns(APP.linkedRecords);
+    }
+  } else {
+    loadingState.style.display = 'flex';
+    emptyState.style.display = 'none';
+    resultsTable.style.display = 'none';
+    
+    try {
+      const data = await grist.docApi.fetchTable(tableName);
+      const records = [];
+      const ids = data.id || [];
+      const columns = Object.keys(data).filter(k => k !== 'id' && k !== 'manualSort');
+      
+      for (let i = 0; i < ids.length; i++) {
+        const rec = { id: ids[i] };
+        columns.forEach(col => { rec[col] = data[col][i]; });
+        records.push(rec);
+      }
+      
+      APP.records = records;
+      APP.ready = true;
+      rebuildColumns(records);
+    } catch (e) {
+      console.error('Error loading table:', e);
+    }
+    
+    loadingState.style.display = 'none';
+  }
+  
+  runFilter();
+}
+
+function rebuildColumns(records) {
+  if (!records.length) {
+    APP.columns = [];
+    APP.activeCols.clear();
+    renderColTags();
+    renderColumnsList();
+    return;
+  }
+  
+  const skip = new Set(['id', 'manualSort']);
+  APP.columns = Object.keys(records[0])
+    .filter(k => !skip.has(k))
+    .map(k => ({ id: k, label: k, type: inferType(records[0][k]) }));
+  
+  APP.activeCols.clear();
+  APP.columns.forEach(c => APP.activeCols.add(c.id));
+  
+  renderColTags();
+  renderColumnsList();
 }
 
 function inferType(v) {
@@ -1684,188 +1318,134 @@ function inferType(v) {
   return 'Text';
 }
 
-function loadDemo() {
-  APP.records = [
-    {id:1,Nom:'Alice Dupont',   Email:'alice@corp.fr',  Ville:'Paris',    Rôle:'Admin'},
-    {id:2,Nom:'Bob Martin',    Email:'bob@corp.fr',    Ville:'Lyon',     Rôle:'Éditeur'},
-    {id:3,Nom:'Claire Morin',  Email:'claire@corp.fr', Ville:'Nantes',   Rôle:'Lecteur'},
-    {id:4,Nom:'David Leroy',   Email:'david@corp.fr',  Ville:'Paris',    Rôle:'Admin'},
-    {id:5,Nom:'Eva Petit',     Email:'eva@corp.fr',    Ville:'Lille',    Rôle:'Éditeur'},
-    {id:6,Nom:'François Roux', Email:'f.roux@corp.fr', Ville:'Lyon',     Rôle:'Lecteur'},
-    {id:7,Nom:'Gaby Simon',    Email:'gaby@corp.fr',   Ville:'Bordeaux', Rôle:'Admin'},
-    {id:8,Nom:'Hugo Blanc',    Email:'hugo@corp.fr',   Ville:'Paris',    Rôle:'Éditeur'},
-  ];
-  APP.columns = [
-    {id:'Nom',   label:'Nom',   type:'Text', hidden:false},
-    {id:'Email', label:'Email', type:'Text', hidden:false},
-    {id:'Ville', label:'Ville', type:'Text', hidden:false},
-    {id:'Rôle',  label:'Rôle',  type:'Text', hidden:false},
-  ];
-  APP.columns.forEach(c => APP.activeCols.add(c.id));
-  APP.ready = true;
-  stateMsg.innerHTML = '<div class="state-ico">🧪</div><span>Mode démo — ouvrez dans Grist pour données réelles</span>';
-  stateMsg.style.display = 'flex';
-  setTimeout(() => { stateMsg.style.display = 'none'; renderCols(); renderColTagsSimple(); loadSession(); runFilter(); }, 1800);
+// ══════════════════════════════════════════════════════════════
+// SETTINGS & HELP PANELS
+// ══════════════════════════════════════════════════════════════
+function openSettings() {
+  settingsOverlay.classList.add('show');
+  settingsPanel.classList.add('show');
 }
 
-/* ═══════════════════════════════════════════════════════════
-   EVENT LISTENERS
-═══════════════════════════════════════════════════════════ */
+function closeSettings() {
+  settingsOverlay.classList.remove('show');
+  settingsPanel.classList.remove('show');
+}
 
-// Search
-const sSearchBtnRef = document.getElementById('sSearchBtn');
-sInput.addEventListener('input', () => {
-  APP.query = sInput.value;
-  sClear.classList.toggle('show', !!APP.query);
-  sSearchBtnRef.classList.toggle('show', !!APP.query);
-  saveSession(APP.query);
+function openHelp() {
+  helpPanel.classList.add('show');
+}
+
+function closeHelp() {
+  helpPanel.classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════════════════
+// GRIST INTEGRATION
+// ══════════════════════════════════════════════════════════════
+function initGrist() {
+  try {
+    grist.ready({ requiredAccess: 'full', columns: [] });
+    APP.gristReady = true;
+    loadAvailableTables();
+    
+    grist.onRecords((records) => {
+      APP.linkedRecords = records || [];
+      if (!APP.selectedTable) {
+        APP.records = APP.linkedRecords;
+      }
+      
+      if (!APP.ready && records.length > 0) {
+        APP.ready = true;
+        rebuildColumns(records);
+        runFilter();
+      } else if (APP.ready && !APP.selectedTable) {
+        runFilter();
+      }
+    });
+  } catch (e) {
+    console.warn('Grist not available, using demo mode');
+    loadDemo();
+  }
+}
+
+function loadDemo() {
+  APP.records = [
+    { id: 1, Nom: 'Alice Dupont', Email: 'alice@corp.fr', Ville: 'Paris' },
+    { id: 2, Nom: 'Bob Martin', Email: 'bob@corp.fr', Ville: 'Lyon' },
+    { id: 3, Nom: 'Claire Morin', Email: 'claire@corp.fr', Ville: 'Nantes' },
+  ];
+  APP.ready = true;
+  rebuildColumns(APP.records);
+}
+
+// ══════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ══════════════════════════════════════════════════════════════
+searchInput.addEventListener('input', () => {
+  APP.query = searchInput.value;
+  searchClear.classList.toggle('show', !!APP.query);
   runFilter();
 });
 
-sClear.addEventListener('click', () => {
-  sInput.value = ''; APP.query = '';
-  sClear.classList.remove('show');
-  sSearchBtnRef.classList.remove('show');
-  tokList.innerHTML = '';
-  saveSession('');
-  runFilter();
-  sInput.focus();
-});
-
-// Keyboard shortcut: Escape clears, Enter triggers search
-sInput.addEventListener('keydown', e => {
-  if (e.key === 'Escape') sClear.click();
-  if (e.key === 'Enter') {
-    e.preventDefault();
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    searchInput.value = '';
+    APP.query = '';
+    searchClear.classList.remove('show');
     runFilter();
-    renderResults(APP.lastMatchedRecords);
   }
 });
 
-// Search button
-const sSearchBtn = document.getElementById('sSearchBtn');
-sSearchBtn.addEventListener('click', () => {
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  APP.query = '';
+  searchClear.classList.remove('show');
   runFilter();
-  renderResults(APP.lastMatchedRecords);
+  searchInput.focus();
 });
 
-// Settings panel
-btnCfg.addEventListener('click', () => {
-  const open = cfgPanel.classList.toggle('open');
-  btnCfg.classList.toggle('on', open);
+// Match mode pills
+document.querySelectorAll('.pill[data-match]').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.pill[data-match]').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    APP.matchMode = pill.dataset.match;
+    runFilter();
+  });
 });
+
+// Logic mode pills
+document.querySelectorAll('.pill[data-logic]').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.pill[data-logic]').forEach(p => {
+      p.classList.remove('active', 'active-green');
+    });
+    pill.classList.add(pill.dataset.logic === 'or' ? 'active-green' : 'active');
+    APP.logicMode = pill.dataset.logic;
+    runFilter();
+  });
+});
+
+// Table selection
+tableSelect.addEventListener('change', () => selectTable(tableSelect.value));
+
+// Settings
+$('btnSettings').addEventListener('click', openSettings);
+settingsOverlay.addEventListener('click', closeSettings);
+$('settingsClose').addEventListener('click', closeSettings);
 
 // Help
-const toggleHelp = () => {
-  const open = helpBody.classList.toggle('open');
-  helpChev.classList.toggle('open', open);
-  btnHelp.classList.toggle('on', open);
-};
-btnHelp.addEventListener('click', toggleHelp);
-helpBar.addEventListener('click', toggleHelp);
-
-// Config: mode
-cfgMode.addEventListener('change', () => { APP.defaultMode = cfgMode.value; runFilter(); });
-
-// Config: table selection
-cfgTable.addEventListener('change', () => selectTable(cfgTable.value));
-btnRefreshTables.addEventListener('click', () => loadAvailableTables());
-
-// Save results
-btnSaveResults.addEventListener('click', openSaveModal);
-btnCancelSave.addEventListener('click', closeSaveModal);
-btnConfirmSave.addEventListener('click', saveResultsToTable);
-saveModal.addEventListener('click', (e) => {
-  if (e.target === saveModal) closeSaveModal();
+$('btnHelp').addEventListener('click', () => {
+  if (helpPanel.classList.contains('show')) closeHelp();
+  else openHelp();
 });
+$('helpClose').addEventListener('click', closeHelp);
 
-// Results panel toggle
-btnToggleResults.addEventListener('click', toggleResultsPanel);
-
-// Config: placeholder
-cfgPH.addEventListener('input', () => { sInput.placeholder = cfgPH.value || 'Rechercher…'; });
-
-// Config: session
-cfgSess.addEventListener('change', () => {
-  APP.sessEnabled = cfgSess.checked;
-  sessIdRow.style.opacity = APP.sessEnabled ? '1' : '.4';
-  sessIdRow.style.pointerEvents = APP.sessEnabled ? 'auto' : 'none';
-  sessIndicator.style.display = APP.sessEnabled ? 'inline-flex' : 'none';
-  if (APP.sessEnabled) loadSession();
-});
-
-cfgSessId.addEventListener('input', () => { APP.sessId = cfgSessId.value || 'grist-search'; });
-
-// Config: hidden columns
-cfgHidden.addEventListener('change', () => {
-  renderCols();
-  renderColTagsSimple();
-});
-
-// Column select all / none
-document.getElementById('btnAll').addEventListener('click', () => {
-  APP.columns.forEach(c => APP.activeCols.add(c.id));
-  renderCols();
-  renderColTagsSimple();
-  runFilter();
-});
-document.getElementById('btnNone').addEventListener('click', () => {
-  APP.activeCols.clear();
-  renderCols();
-  renderColTagsSimple();
-  runFilter();
-});
-
-/* ═══════════════════════════════════════════════════════════
-   SIMPLE MODE EVENT LISTENERS
-═══════════════════════════════════════════════════════════ */
-
-// Mode toggle
-btnModeSimple.addEventListener('click', () => setUIMode('simple'));
-btnModeAdvanced.addEventListener('click', () => setUIMode('advanced'));
-
-// Match type chips
-document.querySelectorAll('.chip[data-match]').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.chip[data-match]').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    APP.simpleMatch = chip.dataset.match;
-    runFilter();
-  });
-});
-
-// Logic chips
-document.querySelectorAll('.chip[data-logic]').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('.chip[data-logic]').forEach(c => {
-      c.classList.remove('active-green', 'active-orange');
-    });
-    chip.classList.add(chip.dataset.logic === 'or' ? 'active-green' : 'active-orange');
-    APP.simpleLogic = chip.dataset.logic;
-    runFilter();
-  });
-});
-
-// Filter builder
-btnAddFilter.addEventListener('click', () => addFilter());
-btnClearFilters.addEventListener('click', () => {
-  APP.filters = [];
-  renderFilters();
-  runFilter();
-});
-
-/* ═══════════════════════════════════════════════════════════
-   BOOT
-═══════════════════════════════════════════════════════════ */
-if (typeof grist !== 'undefined') {
-  initGrist();
-} else {
-  loadDemo();
-}
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+initGrist();
 </script>
-<footer style="position: fixed; bottom: 0; left: 0; right: 0; background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 4px 12px; font-size: 0.7em; color: #94a3b8; display: flex; justify-content: space-between; z-index: 1000;">
-  <span>© 2026 Said Hamadou (isaytoo)</span>
-  <a href="https://gristup.fr" target="_blank" style="color: #3b82f6; text-decoration: none;">gristup.fr</a>
-</footer>
+
 </body>
 </html>
