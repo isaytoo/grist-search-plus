@@ -2,6 +2,8 @@
 
 Widget de recherche multi-colonnes avec syntaxe avancée pour Grist.
 
+**URL du widget :** `https://isaytoo.github.io/grist-search-plus/`
+
 ## Fichiers
 
 ```
